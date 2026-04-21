@@ -2,7 +2,7 @@
 # https://github.com/gitleaks/gitleaks#configuration
 
 [allowlist]
-  description = "Pacsea false positive suppressions"
+  description = "Packman false positive suppressions"
 
   # Generated rustdoc JS files contain Rust constant names (KEYCTL_CAPS0_*, FSCRYPT_*)
   # that trigger generic-api-key due to entropy. These are not secrets.

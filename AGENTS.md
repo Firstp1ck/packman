@@ -98,7 +98,7 @@ With `cargo clippy ... -- -D warnings`, **warnings are errors** for any lint tha
 - **Never** grow new `format!("... {} ...", user_input)` shell strings without an explicit safety review path.
 - Long-running / network shell snippets already go through helpers like `run_shell` (timeout in `pkg_manager.rs`); keep timeouts when adding similar calls.
 
-There are **no** application-level secrets, curl wrappers, or `PACSEA_*`-style test env vars in this repo—do not copy security checklists from other projects wholesale; anchor guidance in **this** codebase.
+There are **no** application-level secrets, curl wrappers, or `PACKMAN_*`-style test env vars in this repo—do not copy security checklists from other projects wholesale; anchor guidance in **this** codebase.
 
 ## Dependencies
 

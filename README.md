@@ -55,6 +55,19 @@ cargo build --release
 sudo cp target/release/packman /usr/local/bin/
 ```
 
+### Arch Linux (`makepkg`)
+
+This repository includes [`PKGBUILD-git`](PKGBUILD-git) for building and installing with Arch’s `makepkg`. It produces the `packman-git` package (provides `packman`) and pulls the latest sources during the build.
+
+```bash
+git clone https://github.com/aliabdoxd14-sudo/packman
+cd packman
+cp PKGBUILD-git PKGBUILD
+makepkg -si
+```
+
+You need the **base-devel** group (for `makepkg`) and network access so the PKGBUILD can clone the upstream tree it builds from.
+
 ### Requirements
 
 - **Rust** — current **stable** toolchain (install or update via [rustup](https://rustup.rs))
