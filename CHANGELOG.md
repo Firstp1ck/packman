@@ -41,6 +41,12 @@ Build from source or follow the options in the project [README](../README.md)—
 
 ---
 
+## What you get
+
+PackMan is one **full-screen terminal app** where you work with packages the way you already do—only you stay in one place instead of switching between different commands for pip, npm, Flatpak, your system package manager, and the rest.
+
+If you use several of those tools, PackMan is meant to feel like a **single front door**: pick what you care about, see what is installed, and act on it with a few keys.
+
 # Changelog
 
 All notable changes to Packman will be documented in this file.
