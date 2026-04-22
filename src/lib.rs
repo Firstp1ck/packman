@@ -5,8 +5,9 @@
 #![allow(clippy::missing_docs_in_private_items)]
 
 use std::collections::{BTreeSet, HashMap, VecDeque};
+use std::io::{self, BufRead, IsTerminal, Write as IoWrite};
 use std::path::Path;
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::time::Instant;
 
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
@@ -28,7 +29,9 @@ mod pkg_manager;
 pub use all_upgradables::{
     UpgradableRow, collect_all_upgradables, collect_upgradables_from_cached_lists,
 };
-use pkg_manager::{PackageManager, merge_packages_with_latest_map, pip_uses_arch_pacman_for_global};
+use pkg_manager::{
+    PackageManager, merge_packages_with_latest_map, pip_uses_arch_pacman_for_global,
+};
 
 /// Recoverable failures surfaced to the user or propagated from subprocess I/O.
 #[derive(Error, Debug)]
@@ -277,6 +280,8 @@ pub struct App {
     preload_result_tx: Option<PreloadSender>,
     /// Manager names that already showed the one-time sudo hint this session.
     shown_privilege_hint_for: BTreeSet<String>,
+    /// User chose to run `sudo -v` before the TUI and it succeeded.
+    sudo_session_enabled: bool,
 }
 
 impl App {
@@ -326,6 +331,7 @@ impl App {
             preload_op_epoch: 0,
             preload_result_tx: None,
             shown_privilege_hint_for: BTreeSet::new(),
+            sudo_session_enabled: false,
         })
     }
 
@@ -700,6 +706,64 @@ fn is_command_available(cmd: &str) -> bool {
         .is_ok_and(|o| o.status.success())
 }
 
+/// Backends whose installs/upgrades go through privileged tooling (`sudo`, etc.).
+#[must_use]
+fn pm_benefits_from_sudo_timestamp(pm: &PackageManager) -> bool {
+    pm.available
+        && (matches!(pm.name.as_str(), "apt" | "pacman" | "aur" | "rpm" | "snap")
+            || (pm.name == "pip" && pip_uses_arch_pacman_for_global()))
+}
+
+/// Runs `sudo -v` with inherited stdio (password prompt on the real terminal).
+fn run_sudo_v_inherit_stdio() -> AppResult<()> {
+    let status = Command::new("sudo")
+        .args(["-v"])
+        .stdin(Stdio::inherit())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .status()?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(format!(
+            "sudo -v failed ({status}); authenticate in this terminal before starting UniPack"
+        )
+        .into())
+    }
+}
+
+/// When privileged backends exist, asks on the CLI whether to run `sudo -v` before the TUI.
+///
+/// Returns `Ok(true)` only after a successful `sudo -v`. Returns `Ok(false)` when the user
+/// declines, when stdin is not a TTY, or when sudo / privileged backends are not applicable.
+fn offer_sudo_warm_before_tui(package_managers: &[PackageManager]) -> AppResult<bool> {
+    if !cfg!(unix) {
+        return Ok(false);
+    }
+    if !package_managers.iter().any(pm_benefits_from_sudo_timestamp) {
+        return Ok(false);
+    }
+    if !is_command_available("sudo") {
+        return Ok(false);
+    }
+    if !io::stdin().is_terminal() {
+        return Ok(false);
+    }
+    eprint!(
+        "Some package managers need elevated privileges to install or upgrade. Authenticate with sudo now? [y/N] "
+    );
+    let _ = io::stderr().flush();
+    let mut line = String::new();
+    io::stdin().lock().read_line(&mut line)?;
+    let low = line.trim().to_ascii_lowercase();
+    let consent = matches!(low.as_str(), "y" | "yes");
+    if !consent {
+        return Ok(false);
+    }
+    run_sudo_v_inherit_stdio()?;
+    Ok(true)
+}
+
 struct AppColors {
     bg: Color,
     fg: Color,
@@ -993,7 +1057,7 @@ fn render_info_strip(f: &mut Frame, app: &App, area: Rect) {
 
     let raw_info = current_info_text(app);
     let info = clip_display_width(&raw_info, area.width);
-    let info_color = if raw_info.contains("sudo -v") {
+    let info_color = if privilege_hint_needs_sudo_reminder(&raw_info) {
         COLORS.warning
     } else {
         COLORS.accent
@@ -1464,8 +1528,7 @@ fn upgrade_all_upgradables_selection(app: &mut App, multi_upgrade_tx: &MultiUpgr
         return;
     }
     let indices: Vec<usize> = overlay.selected.iter().copied().collect();
-    let mut tasks: Vec<(usize, PackageManager, String, String)> =
-        Vec::with_capacity(indices.len());
+    let mut tasks: Vec<(usize, PackageManager, String, String)> = Vec::with_capacity(indices.len());
     for idx in indices {
         let Some(row) = overlay.rows.get(idx) else {
             continue;
@@ -1735,8 +1798,20 @@ fn handle_pm_switch(app: &mut App) {
     clamp_pm_selection(app);
 }
 
-fn is_privilege_sudo_toast(msg: &str) -> bool {
+/// True when `message` is the per-PM privilege line (either “run sudo -v” or “sudo is enabled”).
+#[must_use]
+fn is_privilege_hint_toast(msg: &str) -> bool {
+    privilege_hint_needs_sudo_reminder(msg) || privilege_hint_sudo_enabled_line(msg)
+}
+
+#[must_use]
+fn privilege_hint_needs_sudo_reminder(msg: &str) -> bool {
     msg.contains("actions may require sudo") && msg.contains("sudo -v")
+}
+
+#[must_use]
+fn privilege_hint_sudo_enabled_line(msg: &str) -> bool {
+    msg.contains("sudo is enabled, packages can be updated")
 }
 
 fn maybe_show_privilege_hint(app: &mut App) {
@@ -1746,11 +1821,7 @@ fn maybe_show_privilege_hint(app: &mut App) {
     let needs_sudo_hint = matches!(pm.name.as_str(), "apt" | "pacman" | "aur" | "rpm" | "snap")
         || (pm.name == "pip" && pip_uses_arch_pacman_for_global());
     if !needs_sudo_hint {
-        if app
-            .message
-            .as_deref()
-            .is_some_and(is_privilege_sudo_toast)
-        {
+        if app.message.as_deref().is_some_and(is_privilege_hint_toast) {
             app.message = None;
         }
         return;
@@ -1758,15 +1829,16 @@ fn maybe_show_privilege_hint(app: &mut App) {
     // `insert` is false after the first visit to this PM in the session, but we still want the
     // hint when returning from a non-sudo tab (message was cleared) or when replacing our own toast.
     let first_visit_this_pm = app.shown_privilege_hint_for.insert(pm.name.clone());
-    let message_ok_to_replace = app
-        .message
-        .as_deref()
-        .is_none_or(is_privilege_sudo_toast);
+    let message_ok_to_replace = app.message.as_deref().is_none_or(is_privilege_hint_toast);
     if first_visit_this_pm || message_ok_to_replace {
-        app.message = Some(format!(
-            "{} actions may require sudo. Run `sudo -v` in terminal first.",
-            pm.name
-        ));
+        app.message = Some(if app.sudo_session_enabled {
+            format!("{}: sudo is enabled, packages can be updated.", pm.name)
+        } else {
+            format!(
+                "{} actions may require sudo. Run `sudo -v` in terminal first.",
+                pm.name
+            )
+        });
     }
 }
 
@@ -2074,13 +2146,23 @@ pub fn run() {
             "  UniPack runs package commands non-interactively. For apt/pacman/aur/rpm/snap actions,"
         );
         println!(
-            "  and the pip tab when pacman is present (python-* packages), authenticate sudo first:"
+            "  and the pip tab when pacman is present (python-* packages), you can opt in to `sudo -v`"
         );
-        println!("  sudo -v");
+        println!(
+            "  at startup (interactive terminal), or run `sudo -v` yourself before upgrading."
+        );
         return;
     }
 
     let mut app = App::new().expect("Failed to create app");
+    match offer_sudo_warm_before_tui(&app.package_managers) {
+        Ok(true) => app.sudo_session_enabled = true,
+        Ok(false) => {}
+        Err(e) => {
+            eprintln!("{e}");
+            std::process::exit(1);
+        }
+    }
     let mut terminal = ratatui::init();
 
     {
@@ -2112,6 +2194,7 @@ pub fn run() {
     }
 
     refresh_preload_queue(&mut app, false);
+    maybe_show_privilege_hint(&mut app);
 
     let (update_tx, update_rx) = std::sync::mpsc::channel::<(usize, Option<usize>)>();
     spawn_update_refresh(&app.package_managers, &update_tx);
