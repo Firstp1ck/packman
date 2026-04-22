@@ -1,6 +1,6 @@
 # 📦 UniPack
 
-> A fast, unified TUI for keeping every package manager up to date — built with Rust.
+> A unified TUI for keeping every package manager up to date.
 
 ![UniPack main TUI](images/Mainpage_v0.1.0.png)
 
@@ -8,7 +8,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS-lightgrey?style=flat-square)
 
-UniPack lets you browse, search, upgrade, and remove packages across **pip, npm, bun, cargo, apt, pacman, AUR, rpm, flatpak, snap, and brew** — all from one terminal UI. It is focused on **keeping your system up to date**, not bootstrapping new installs: use your package manager of choice for first-time installs, then let UniPack handle the ongoing updates. It **remembers your package lists between runs** so reopening feels quicker, and it **shows when updates are available** where the underlying tools support it. Press **`a`** anytime to open an **all-updates** view across every manager UniPack found: pick multiple rows and upgrade in one go.
+UniPack lets you browse, search, upgrade, and remove packages across **pip, npm, bun, cargo, apt, pacman, AUR, rpm, flatpak, snap, and brew** — all from one terminal UI. It is focused on **keeping your system up to date**, not bootstrapping new installs: use your package manager of choice for first-time installs, then let UniPack handle the ongoing updates. It **remembers your package lists between runs** so reopening feels quicker, and it **shows when updates are available** where the underlying tools support it.
 
 ---
 
