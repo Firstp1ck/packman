@@ -1,6 +1,6 @@
 # Maintainer: Firstpick firstpick1992@proton.me
 pkgname=unipack-git
-pkgver=0.1.0
+pkgver=0.1.1
 pkgrel=1
 pkgdesc="Unified terminal UI for pip, npm, bun, cargo, brew, apt, pacman, AUR, rpm, flatpak, and snap (git version)"
 arch=('x86_64' 'aarch64')
@@ -84,5 +84,5 @@ package() {
   cd "$srcdir/unipack" || exit 1
   install -Dm755 "target/release/unipack" "$pkgdir/usr/bin/unipack"
   install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
-  install -Dm644 /usr/share/licenses/common/MIT/license "$pkgdir/usr/share/licenses/$pkgname/license"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }

@@ -63,3 +63,7 @@ credentials.json
 service-account.json
 src/Unipack/
 *release-report*
+
+pkg
+unipack-git*
+src/unipack
