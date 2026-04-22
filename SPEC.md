@@ -6,7 +6,7 @@ This document describes the **UniPack** TUI as implemented in this repository (s
 
 - **Name**: UniPack
 - **Kind**: Rust terminal application (`ratatui` + `crossterm`), library crate `unipack` with a thin `main` binary
-- **Purpose**: Browse installed packages across several backends from one UI, filter and search, install/remove/upgrade where supported, and inspect cross-manager updates in an overlay
+- **Purpose**: Browse installed packages across several backends from one UI, filter and search, upgrade/remove where supported, and inspect cross-manager updates in an overlay. Installing new packages is intentionally out of scope.
 - **Audience**: Developers and admins who use multiple package ecosystems on Linux (and macOS where Homebrew or other tools apply)
 
 ## Technology stack
@@ -36,7 +36,7 @@ Backends are **only shown if the primary executable is on `PATH`** (`command -v 
 | `flatpak` | `flatpak`   | Apps column output; installs target `flathub` by default in the shell command |
 | `snap`  | `snap`          | |
 
-Privileged installs/removes/upgrades for several backends run **`sudo …`** in a subshell; there is no in-app password UI.
+Privileged removes/upgrades for several backends run **`sudo …`** as direct argv (no shell); there is no in-app password UI.
 
 ## User interface
 
@@ -116,7 +116,6 @@ Terminal UIs are **cell-based**; font size in “px” is not controlled by the 
 | `a` | Open all-upgradables overlay (from cached lists) |
 | `u` | Upgrade selected package (main list) or upgrade selection (overlay) |
 | `r` | Remove selected package |
-| `i` | Install: type package name in search, then **`i`** (non-empty query required) |
 | `Tab` | Next package manager |
 | `Shift+Tab` / `BackTab` | Previous package manager |
 | `Ctrl+R` | Refresh active list (sync) and respawn pending-update count threads |

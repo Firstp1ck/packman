@@ -1,6 +1,6 @@
 # 📦 UniPack
 
-> A fast, unified TUI for all your package managers — built with Rust.
+> A fast, unified TUI for keeping every package manager up to date — built with Rust.
 
 ![UniPack main TUI](images/Mainpage_v0.1.0.png)
 
@@ -8,7 +8,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS-lightgrey?style=flat-square)
 
-UniPack lets you browse, search, install, remove, and upgrade packages across **pip, npm, bun, cargo, apt, pacman, AUR, rpm, flatpak, snap, and brew** — all from one terminal UI. It **remembers your package lists between runs** so reopening feels quicker, and it can **show when updates are available** where the underlying tools support it. Press **`a`** anytime to open an **all-updates** view across every manager UniPack found: pick multiple rows and upgrade in one go.
+UniPack lets you browse, search, upgrade, and remove packages across **pip, npm, bun, cargo, apt, pacman, AUR, rpm, flatpak, snap, and brew** — all from one terminal UI. It is focused on **keeping your system up to date**, not bootstrapping new installs: use your package manager of choice for first-time installs, then let UniPack handle the ongoing updates. It **remembers your package lists between runs** so reopening feels quicker, and it **shows when updates are available** where the underlying tools support it. Press **`a`** anytime to open an **all-updates** view across every manager UniPack found: pick multiple rows and upgrade in one go.
 
 ---
 
@@ -17,7 +17,7 @@ UniPack lets you browse, search, install, remove, and upgrade packages across **
 - **Finds** which supported package managers are installed
 - **One list per tool** — switch with Tab / Shift+Tab
 - **Live search** — filter as you type (`/`)
-- **Install, remove, and upgrade** without leaving the app
+- **Upgrade and remove** without leaving the app (installing new packages is intentionally out of scope)
 - **`o`** — show only packages with updates, or everything, for the current manager
 - **`a`** — see updates from **all** managers at once (Space toggles a row, **`u`** upgrades what you selected, **`a`** / **`d`** select all or none, **Shift+letter** quickly toggles rows for managers whose name starts with that letter)
 - **Distro name** in the header on Linux
@@ -77,7 +77,7 @@ You need the **base-devel** group (for `makepkg`) and network access so the PKGB
 sudo -v
 ```
 
-UniPack runs package actions non-interactively, so this avoids password-prompt stalls during install/remove/upgrade.
+UniPack runs package actions non-interactively, so this avoids password-prompt stalls during upgrade/remove.
 
 ---
 
@@ -91,7 +91,6 @@ UniPack runs package actions non-interactively, so this avoids password-prompt s
 | `/`              | Toggle search mode |
 | `o`              | Toggle upgradable-only vs all packages |
 | `a`              | Open **all upgradables** overlay (`Esc` / `q` to close) |
-| `i`              | Install — type the name in search first, then `i` |
 | `u`              | Upgrade selected row (main list) or **selected rows** (overlay) |
 | `r`              | Remove selected package |
 | `Tab` / `Shift+Tab` | Next / previous package manager |
@@ -112,7 +111,11 @@ unipack --help
 unipack -h
 ```
 
-**To install a package:** press `/`, type the name, then `i`.
+**To upgrade:** select a row and press `u`, or press `a` for the all-managers overlay, tick rows with `Space`, and press `u`.
+
+**To remove:** select a row and press `r`.
+
+**To install a new package:** use your package manager directly (for example `sudo pacman -S <pkg>`, `sudo apt install <pkg>`, `pip install <pkg>`). UniPack intentionally does not install new packages — it is focused on updates.
 
 ---
 

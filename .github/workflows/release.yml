@@ -106,16 +106,24 @@ jobs:
             } >> "$GITHUB_OUTPUT"
           fi
 
-  build-linux:
-    name: Build Linux (${{ matrix.asset }})
+  build-binaries:
+    name: Build (${{ matrix.platform }}-${{ matrix.arch }})
     needs: get-version
     strategy:
       matrix:
         include:
           - runner: ubuntu-latest
-            asset: unipack-x86_64
+            platform: linux
+            arch: x86_64
           - runner: ubuntu-24.04-arm
-            asset: unipack-aarch64
+            platform: linux
+            arch: arm64
+          - runner: macos-13
+            platform: darwin
+            arch: x86_64
+          - runner: macos-14
+            platform: darwin
+            arch: arm64
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout code
@@ -129,7 +137,8 @@ jobs:
         with:
           toolchain: stable
 
-      - name: Install system dependencies
+      - name: Install Linux system dependencies
+        if: matrix.platform == 'linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -146,17 +155,17 @@ jobs:
         run: cargo build --release
 
       - name: Stage binary for upload
-        run: cp target/release/unipack "${{ matrix.asset }}"
+        run: cp target/release/unipack "unipack-${{ matrix.platform }}-${{ matrix.arch }}"
 
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
         with:
-          name: asset-${{ matrix.asset }}
-          path: ${{ matrix.asset }}
+          name: asset-unipack-${{ matrix.platform }}-${{ matrix.arch }}
+          path: unipack-${{ matrix.platform }}-${{ matrix.arch }}
 
   publish-release:
     name: Publish release
-    needs: [get-version, build-linux]
+    needs: [get-version, build-binaries]
     runs-on: ubuntu-latest
     steps:
       - name: Download built binaries
@@ -170,9 +179,15 @@ jobs:
         run: |
           set -euo pipefail
           cd release-files
-          test -f unipack-x86_64
-          test -f unipack-aarch64
-          sha256sum unipack-x86_64 unipack-aarch64 > SHA256SUMS
+          test -f unipack-linux-x86_64
+          test -f unipack-linux-arm64
+          test -f unipack-darwin-x86_64
+          test -f unipack-darwin-arm64
+          sha256sum \
+            unipack-linux-x86_64 \
+            unipack-linux-arm64 \
+            unipack-darwin-x86_64 \
+            unipack-darwin-arm64 > SHA256SUMS
           echo "SHA256SUMS:"
           cat SHA256SUMS
 
@@ -198,8 +213,10 @@ jobs:
           name: Release ${{ needs.get-version.outputs.version }}
           body: ${{ steps.release-body.outputs.body }}
           files: |
-            release-files/unipack-x86_64
-            release-files/unipack-aarch64
+            release-files/unipack-linux-x86_64
+            release-files/unipack-linux-arm64
+            release-files/unipack-darwin-x86_64
+            release-files/unipack-darwin-arm64
             release-files/SHA256SUMS
           draft: false
           prerelease: ${{ needs.get-version.outputs.prerelease == 'true' }}

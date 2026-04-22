@@ -1161,7 +1161,6 @@ fn render_footer(f: &mut Frame, app: &App, area: Rect) {
             footer_col_line([footer_key("r")], " remove "),
         ]);
         let col_sys = Text::from(vec![
-            footer_col_line([footer_key("i")], " install (search) "),
             footer_col_line([footer_key("Ctrl+R")], " refresh "),
             footer_col_line([footer_key("q"), footer_key(" Esc")], " quit "),
         ]);
@@ -1949,7 +1948,6 @@ pub fn run() {
         );
         println!("  u             Upgrade selected package");
         println!("  r             Remove selected package");
-        println!("  i             Install package (type name in search)");
         println!("  Tab           Switch package manager (forward)");
         println!("  Shift+Tab     Switch package manager (backward)");
         println!("  Ctrl+R        Refresh package list");
@@ -2214,22 +2212,6 @@ pub fn run() {
                             }
                         }
                     }
-                }
-                KeyCode::Char('i') if !app.search_mode && !app.search_query.is_empty() => {
-                    let name = app.search_query.clone();
-                    if let Some(pm) = app.active_pm() {
-                        let result = pm.install_package(&name);
-                        match result {
-                            Ok(_) => {
-                                app.message = Some(format!("Installed {name}"));
-                                app.load_packages_sync();
-                            }
-                            Err(e) => {
-                                app.message = Some(format!("Error: {e}"));
-                            }
-                        }
-                    }
-                    app.search_query.clear();
                 }
                 KeyCode::Char('o') if !app.search_mode => {
                     app.show_outdated_only = !app.show_outdated_only;
