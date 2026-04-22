@@ -40,7 +40,7 @@ AUR_GIT_DIR="${UNIPACK_AUR_GIT_DIR:-${HOME}/aur-packages/unipack-git}"
 # When using GitHub Actions releases, keep these in sync with uploaded binary filenames (e.g. release workflow matrix).
 RELEASE_ASSET_X86_64="unipack-x86_64"
 RELEASE_ASSET_AARCH64="unipack-aarch64"
-GITHUB_REPO="${UNIPACK_GITHUB_REPO:-aliabdoxd14-sudo/unipack}"
+GITHUB_REPO="${UNIPACK_GITHUB_REPO:-firstp1ck/unipack}"
 WIKI_DIR="${UNIPACK_WIKI_DIR:-}"
 DRY_RUN=false
 # AUR PKGBUILD pkgrel handling in phase 3: reset | keep | bump (set via --pkgrel or prompt)

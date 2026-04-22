@@ -28,7 +28,7 @@ For a focused developer checklist (lints, tests, shell safety), see [**AGENTS.md
 2. Clone the repository:
 
    ```bash
-   git clone https://github.com/aliabdoxd14-sudo/unipack.git
+   git clone https://github.com/firstp1ck/unipack.git
    cd unipack
    ```
 
@@ -152,7 +152,7 @@ Include where possible:
 
 Describe the problem, proposed UX (keys, flows), and edge cases (missing tools, permissions).
 
-Open issues here: [github.com/aliabdoxd14-sudo/unipack/issues](https://github.com/aliabdoxd14-sudo/unipack/issues).
+Open issues here: [github.com/firstp1ck/unipack/issues](https://github.com/firstp1ck/unipack/issues).
 
 ## Packaging
 

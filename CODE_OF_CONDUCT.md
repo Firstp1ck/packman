@@ -64,7 +64,7 @@ representative at an online or offline event.
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported to the project maintainers:
 
-- Open an issue on [github.com/aliabdoxd14-sudo/unipack](https://github.com/aliabdoxd14-sudo/unipack/issues) with **`[Code of Conduct]`** at the start of the title, or
+- Open an issue on [github.com/firstp1ck/unipack](https://github.com/firstp1ck/unipack/issues) with **`[Code of Conduct]`** at the start of the title, or
 - Use a private channel if you need confidentiality (for example GitHub’s reporting options or contact details the maintainers publish on their profiles).
 
 All complaints will be reviewed and investigated promptly and fairly.

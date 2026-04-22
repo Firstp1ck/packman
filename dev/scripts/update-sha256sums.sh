@@ -133,7 +133,7 @@ EXAMPLES
   update-sha256sums.sh --package unipack --version 0.4.0 --yes --update-srcinfo
 
   # Explicit repo and asset, derive tag from version
-  update-sha256sums.sh -r aliabdoxd14-sudo/unipack -a unipack -v 0.4.0
+  update-sha256sums.sh -r firstp1ck/unipack -a unipack -v 0.4.0
 
   # Exact tag
   update-sha256sums.sh -t v0.4.0

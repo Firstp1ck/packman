@@ -13,7 +13,7 @@ Security-sensitive fixes are applied on the **active development branch** and re
 
 If you believe you have found a security issue in **UniPack** (this repository’s `unipack` binary and library code), please report it responsibly.
 
-**Preferred:** use [GitHub private vulnerability reporting](https://github.com/aliabdoxd14-sudo/unipack/security/advisories/new) for this repository, if it is enabled for your account.
+**Preferred:** use [GitHub private vulnerability reporting](https://github.com/firstp1ck/unipack/security/advisories/new) for this repository, if it is enabled for your account.
 
 **Alternative:** email **firstpick1992@proton.me** with the subject **`[UniPack Security]`**. If email is not possible, open a GitHub issue with minimal public detail and include **“Security”** in the title; maintainers will triage and may follow up privately.
 
@@ -34,6 +34,6 @@ Please include, when possible:
 **Out of scope**
 
 - Vulnerabilities in third-party package managers (`npm`, `pip`, `pacman`, Flatpak, Snap, Homebrew, etc.), their registries, or your distribution’s packages
-- Non-security bugs (use [regular issues](https://github.com/aliabdoxd14-sudo/unipack/issues))
+- Non-security bugs (use [regular issues](https://github.com/firstp1ck/unipack/issues))
 
 Thank you for helping keep UniPack and its users safe.

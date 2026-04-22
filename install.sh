@@ -2,7 +2,7 @@
 
 set -e
 
-REPO="aliabdoxd14-sudo/unipack"
+REPO="firstp1ck/unipack"
 INSTALL_DIR="${HOME}/.local/bin"
 VERSION=$(curl -sL "https://api.github.com/repos/${REPO}/releases/latest" | grep -o '"tag_name": "[^"]*' | cut -d'"' -f4)
 
@@ -23,8 +23,10 @@ detect_arch() {
 }
 
 install() {
-    local platform=$(detect_platform)
-    local arch=$(detect_arch)
+    local platform
+    platform=$(detect_platform)
+    local arch
+    arch=$(detect_arch)
     
     local filename="unipack-${platform}-${arch}"
     local url="https://github.com/${REPO}/releases/download/${VERSION}/${filename}"
