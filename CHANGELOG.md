@@ -27,13 +27,6 @@ UniPack is now an **update tool**, not an installer. Use your native package man
 
 ---
 
-# UniPack v0.1.1
-
-## Focus
-
-UniPack is now an **update tool**, not an installer. Use your native package manager to install new packages; use UniPack to see and apply updates across all of them from one place. Remove is still supported for cleaning up what you already have.
-
-## Highlights
 
 ## [0.1.0] - 2026-04-22
 
