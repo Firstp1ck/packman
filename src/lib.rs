@@ -8,7 +8,7 @@ use std::collections::{BTreeSet, HashMap, VecDeque};
 use std::path::Path;
 use std::process::Command;
 
-use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use crossterm::execute;
 use crossterm::terminal::{EnterAlternateScreen, LeaveAlternateScreen};
 use ratatui::Frame;
@@ -533,6 +533,13 @@ impl App {
 /// Best-effort OS name from `/etc/os-release` or common marker files.
 #[must_use]
 pub fn detect_distro() -> String {
+    if cfg!(target_os = "windows") {
+        return "Windows".to_string();
+    }
+    if cfg!(target_os = "macos") {
+        return "macOS".to_string();
+    }
+
     if Path::new("/etc/os-release").exists()
         && let Ok(content) = std::fs::read_to_string("/etc/os-release")
     {
@@ -1741,7 +1748,10 @@ pub fn run() {
 
         if crossterm::event::poll(std::time::Duration::from_millis(100)).unwrap_or(false)
             && let Ok(Event::Key(KeyEvent {
-                code, modifiers, ..
+                code,
+                modifiers,
+                kind: KeyEventKind::Press,
+                ..
             })) = crossterm::event::read()
         {
             if app.all_upgradables.is_some() {
