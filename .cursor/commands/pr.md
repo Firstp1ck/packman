@@ -1,6 +1,6 @@
 # pr
 
-Create a PR description for the current PackMan change. Save it as `dev/PR/<branch-name>.md` (that directory is gitignored for local drafts).
+Create a PR description for the current UniPack change. Save it as `dev/PR/<branch-name>.md` (that directory is gitignored for local drafts).
 
 This repository does not ship a `PULL_REQUEST_TEMPLATE.md` yet—use the following sections so they line up with `/pr-update`:
 

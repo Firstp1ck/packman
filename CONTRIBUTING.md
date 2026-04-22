@@ -1,6 +1,6 @@
-# Contributing to PackMan
+# Contributing to UniPack
 
-Thanks for your interest in contributing. **PackMan** is a Rust terminal UI for browsing and managing packages across multiple backends (pip, npm, bun, cargo, brew, apt, pacman, AUR helpers, rpm, flatpak, snap). Product behavior is summarized in [README.md](README.md) and specified in [SPEC.md](SPEC.md).
+Thanks for your interest in contributing. **UniPack** is a Rust terminal UI for browsing and managing packages across multiple backends (pip, npm, bun, cargo, brew, apt, pacman, AUR helpers, rpm, flatpak, snap). Product behavior is summarized in [README.md](README.md) and specified in [SPEC.md](SPEC.md).
 
 By participating, you agree to follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 
@@ -16,7 +16,7 @@ For a focused developer checklist (lints, tests, shell safety), see [**AGENTS.md
 
 ## Before you start
 
-- **Scope:** PackMan targets **Linux** and **macOS** where the supported tools exist; backends appear only if their executables are on `PATH`.
+- **Scope:** UniPack targets **Linux** and **macOS** where the supported tools exist; backends appear only if their executables are on `PATH`.
 - **Safety:** Install, remove, and upgrade paths invoke real package-manager commands (there is **no** in-app dry-run mode today). Use a VM, container, or disposable user when exercising risky flows.
 - **Security:** For suspected vulnerabilities, follow [SECURITY.md](SECURITY.md), not public issue dumps of exploit details.
 
@@ -28,8 +28,8 @@ For a focused developer checklist (lints, tests, shell safety), see [**AGENTS.md
 2. Clone the repository:
 
    ```bash
-   git clone https://github.com/aliabdoxd14-sudo/packman.git
-   cd packman
+   git clone https://github.com/aliabdoxd14-sudo/unipack.git
+   cd unipack
    ```
 
 ### Run the app
@@ -142,7 +142,7 @@ Details: **AGENTS.md** and **CLAUDE.md**.
 
 Include where possible:
 
-- PackMan version (or commit hash)
+- UniPack version (or commit hash)
 - OS / distribution
 - Terminal and shell
 - Which package managers are relevant (and whether `sudo` is involved)
@@ -152,7 +152,7 @@ Include where possible:
 
 Describe the problem, proposed UX (keys, flows), and edge cases (missing tools, permissions).
 
-Open issues here: [github.com/aliabdoxd14-sudo/packman/issues](https://github.com/aliabdoxd14-sudo/packman/issues).
+Open issues here: [github.com/aliabdoxd14-sudo/unipack/issues](https://github.com/aliabdoxd14-sudo/unipack/issues).
 
 ## Packaging
 
@@ -163,4 +163,4 @@ This repository includes [`PKGBUILD-git`](PKGBUILD-git) for Arch. Packaging twea
 - **Code of Conduct:** [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 - **Security:** [SECURITY.md](SECURITY.md)
 
-Thank you for helping improve PackMan.
+Thank you for helping improve UniPack.

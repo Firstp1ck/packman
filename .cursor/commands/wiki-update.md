@@ -1,10 +1,10 @@
 # wiki-update
 
-Update the **PackMan GitHub wiki** to reflect the current branch.
+Update the **UniPack GitHub wiki** to reflect the current branch.
 
 ## Scope
 
-- PackMan may use a separate wiki clone; maintainers often set `PACKMAN_WIKI_DIR` (see `dev/scripts/release.sh`). If you only have this repo, ask whether a wiki path is available or whether to draft sections as markdown snippets for manual paste.
+- UniPack may use a separate wiki clone; maintainers often set `UNIPACK_WIKI_DIR` (see `dev/scripts/release.sh`). If you only have this repo, ask whether a wiki path is available or whether to draft sections as markdown snippets for manual paste.
 - Keep pages **user-friendly, clear, and concise**—installation, supported package managers, keyboard map, troubleshooting (missing `yay`/`paru`, permissions, etc.).
 
 ## Editing rules

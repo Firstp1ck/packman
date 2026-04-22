@@ -130,10 +130,10 @@ EXAMPLES
   update-sha256sums.sh -p ./PKGBUILD
 
   # CI/non-interactive with .SRCINFO update
-  update-sha256sums.sh --package packman --version 0.4.0 --yes --update-srcinfo
+  update-sha256sums.sh --package unipack --version 0.4.0 --yes --update-srcinfo
 
   # Explicit repo and asset, derive tag from version
-  update-sha256sums.sh -r aliabdoxd14-sudo/packman -a packman -v 0.4.0
+  update-sha256sums.sh -r aliabdoxd14-sudo/unipack -a unipack -v 0.4.0
 
   # Exact tag
   update-sha256sums.sh -t v0.4.0
@@ -456,7 +456,7 @@ fi
 # Split-binary PKGBUILDs use fixed per-arch release filenames (see download block below), not one ASSET_NAME.
 if [[ "${ASSET_FROM_CLI:-false}" != true && "$INTERACTIVE" == true ]]; then
   if pkgfile_uses_split_gh_release_binaries "$PKGFILE"; then
-    echo "ℹ️ Split-binary PKGBUILD: using GitHub release assets packman-x86_64 and packman-aarch64 (skipping single-filename prompt)." >&2
+    echo "ℹ️ Split-binary PKGBUILD: using GitHub release assets unipack-x86_64 and unipack-aarch64 (skipping single-filename prompt)." >&2
   else
     read -r -p "Enter release asset filename [${ASSET_NAME}]: " input_asset
     if [[ -n "${input_asset:-}" ]]; then
@@ -611,14 +611,14 @@ fi
 
 if pkgfile_uses_split_gh_release_binaries "$PKGFILE"; then
   PKGBUILD_MULTI_ARCH_GH_BINARIES=true
-  ASSET_NAME="packman-x86_64, packman-aarch64"
+  ASSET_NAME="unipack-x86_64, unipack-aarch64"
 fi
 
 echo "ℹ️ Repo:       ${REPO:-"(n/a) (custom URLs)"}" >&2
 echo "ℹ️ Version:    ${VERSION}" >&2
 echo "ℹ️ Tag:        ${TAG}" >&2
 if [[ "${PKGBUILD_MULTI_ARCH_GH_BINARIES}" == true ]]; then
-  echo "ℹ️ Assets:     packman-x86_64 + packman-aarch64 (GitHub release)" >&2
+  echo "ℹ️ Assets:     unipack-x86_64 + unipack-aarch64 (GitHub release)" >&2
   echo "ℹ️ Binary URL: (per-arch; see download step)" >&2
 else
   echo "ℹ️ Asset:      ${ASSET_NAME}" >&2
@@ -626,7 +626,7 @@ else
 fi
 echo "ℹ️ Source URL: ${SOURCE_URL}" >&2
 
-# packman-bin split: source=(tarball), per-arch binaries in source_x86_64 / source_aarch64.
+# unipack-bin split: source=(tarball), per-arch binaries in source_x86_64 / source_aarch64.
 if pkgfile_uses_split_gh_release_binaries "$PKGFILE"; then
   if [[ "${BINARY_FROM_CLI}" == true ]]; then
     die "This PKGBUILD uses split x86_64/aarch64 binaries; omit --binary-url and use --repo/--tag or PKGBUILD inference."
@@ -635,15 +635,15 @@ if pkgfile_uses_split_gh_release_binaries "$PKGFILE"; then
     die "Unable to infer full GitHub repo (OWNER/REPO) for multi-arch download. Provide --repo OWNER/REPO."
   fi
 
-  bin_url_x86="https://github.com/${REPO}/releases/download/${TAG}/packman-x86_64"
-  bin_url_arm="https://github.com/${REPO}/releases/download/${TAG}/packman-aarch64"
+  bin_url_x86="https://github.com/${REPO}/releases/download/${TAG}/unipack-x86_64"
+  bin_url_arm="https://github.com/${REPO}/releases/download/${TAG}/unipack-aarch64"
 
   log_step "Downloading artifacts for ${TAG} (x86_64 + aarch64 + source)"
   tmpdir=$(mktemp -d)
   trap 'rm -rf "$tmpdir"' EXIT
 
-  bin_x86_path="$tmpdir/packman-x86_64"
-  bin_arm_path="$tmpdir/packman-aarch64"
+  bin_x86_path="$tmpdir/unipack-x86_64"
+  bin_arm_path="$tmpdir/unipack-aarch64"
   src_path="$tmpdir/src-${TAG}.tar.gz"
 
   if ! curl_retry "$bin_url_x86" "$bin_x86_path"; then

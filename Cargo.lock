@@ -785,21 +785,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "packman"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "crossterm",
- "ratatui",
- "regex",
- "serde",
- "serde_json",
- "thiserror 2.0.18",
- "tokio",
- "unicode-width",
-]
-
-[[package]]
 name = "parking_lot"
 version = "0.12.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1513,6 +1498,21 @@ name = "unicode-xid"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ebc1c04c71510c7f702b52b7c350734c9ff1295c464a03335b00bb84fc54f853"
+
+[[package]]
+name = "unipack"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "crossterm",
+ "ratatui",
+ "regex",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tokio",
+ "unicode-width",
+]
 
 [[package]]
 name = "utf8parse"

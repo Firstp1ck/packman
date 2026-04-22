@@ -20,4 +20,4 @@ One or two sentences max.
 
 ### Body
 
-Only if needed beyond the summary: bullets for reproduction, expected vs actual, distro/backend (pacman, flatpak, etc.), and PackMan version if known.
+Only if needed beyond the summary: bullets for reproduction, expected vs actual, distro/backend (pacman, flatpak, etc.), and UniPack version if known.

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# release.sh - Automated version release script for Packman
+# release.sh - Automated version release script for UniPack
 #
 # What: Automates version bumps, release notes / changelog / README (manual IDE steps), build, tag push, optional crates.io, and AUR.
 #
@@ -18,11 +18,11 @@
 #
 # Layout (optional env overrides; if unset, defaults below are used and
 # missing paths trigger interactive prompts):
-#   PACKMAN_AUR_BIN_DIR   Directory of the packman-bin AUR git clone (must contain PKGBUILD)
-#   PACKMAN_AUR_GIT_DIR   Directory of the packman-git AUR git clone (must contain PKGBUILD)
-#   PACKMAN_WIKI_DIR      Wiki git clone (optional; empty default skips wiki push)
-#   PACKMAN_GITHUB_REPO   GitHub slug OWNER/REPO for release asset URLs (see GITHUB_REPO default)
-#   PACKMAN_PUBLISH_CRATES Set to 1 to run cargo publish (skipped by default)
+#   UNIPACK_AUR_BIN_DIR   Directory of the unipack-bin AUR git clone (must contain PKGBUILD)
+#   UNIPACK_AUR_GIT_DIR   Directory of the unipack-git AUR git clone (must contain PKGBUILD)
+#   UNIPACK_WIKI_DIR      Wiki git clone (optional; empty default skips wiki push)
+#   UNIPACK_GITHUB_REPO   GitHub slug OWNER/REPO for release asset URLs (see GITHUB_REPO default)
+#   UNIPACK_PUBLISH_CRATES Set to 1 to run cargo publish (skipped by default)
 
 set -euo pipefail
 
@@ -31,17 +31,17 @@ set -euo pipefail
 # ============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PACKMAN_DIR="$(realpath "${SCRIPT_DIR}/../..")"
-DEV_SCRIPTS_DIR="${PACKMAN_DIR}/dev/scripts"
+UNIPACK_DIR="$(realpath "${SCRIPT_DIR}/../..")"
+DEV_SCRIPTS_DIR="${UNIPACK_DIR}/dev/scripts"
 AUR_PUSH_SCRIPT="${DEV_SCRIPTS_DIR}/aur-push.sh"
 UPDATE_SHA_SCRIPT="${DEV_SCRIPTS_DIR}/update-sha256sums.sh"
-AUR_BIN_DIR="${PACKMAN_AUR_BIN_DIR:-${HOME}/aur-packages/packman-bin}"
-AUR_GIT_DIR="${PACKMAN_AUR_GIT_DIR:-${HOME}/aur-packages/packman-git}"
+AUR_BIN_DIR="${UNIPACK_AUR_BIN_DIR:-${HOME}/aur-packages/unipack-bin}"
+AUR_GIT_DIR="${UNIPACK_AUR_GIT_DIR:-${HOME}/aur-packages/unipack-git}"
 # When using GitHub Actions releases, keep these in sync with uploaded binary filenames (e.g. release workflow matrix).
-RELEASE_ASSET_X86_64="packman-x86_64"
-RELEASE_ASSET_AARCH64="packman-aarch64"
-GITHUB_REPO="${PACKMAN_GITHUB_REPO:-aliabdoxd14-sudo/packman}"
-WIKI_DIR="${PACKMAN_WIKI_DIR:-}"
+RELEASE_ASSET_X86_64="unipack-x86_64"
+RELEASE_ASSET_AARCH64="unipack-aarch64"
+GITHUB_REPO="${UNIPACK_GITHUB_REPO:-aliabdoxd14-sudo/unipack}"
+WIKI_DIR="${UNIPACK_WIKI_DIR:-}"
 DRY_RUN=false
 # AUR PKGBUILD pkgrel handling in phase 3: reset | keep | bump (set via --pkgrel or prompt)
 PKGREL_MODE=""
@@ -81,7 +81,7 @@ mark_skipped() { SKIPPED_STEPS+=("$*"); }
 
 initialize_release_report() {
   local report_dir ts
-  report_dir="${PACKMAN_DIR}/dev/RELEASE"
+  report_dir="${UNIPACK_DIR}/dev/RELEASE"
   mkdir -p "${report_dir}"
   ts="$(date +%Y%m%d-%H%M%S)"
   RELEASE_REPORT_FILE="${report_dir}/release-report-pending-${ts}.txt"
@@ -136,7 +136,7 @@ enable_report_mirroring() {
   if [[ "${RELEASE_REPORT_MIRRORING_ENABLED}" != true ]]; then
     exec > >(tee -a "${RELEASE_REPORT_FILE}") 2>&1
     RELEASE_REPORT_MIRRORING_ENABLED=true
-    echo "Packman release log started: $(date -Iseconds)"
+    echo "UniPack release log started: $(date -Iseconds)"
     echo "Report file: ${RELEASE_REPORT_FILE}"
     echo
   fi
@@ -238,7 +238,7 @@ extract_first_sha256() {
 }
 
 get_current_version() {
-  sed -n 's/^version = "\(.*\)"/\1/p' "${PACKMAN_DIR}/Cargo.toml" | awk 'NR==1{print; exit}'
+  sed -n 's/^version = "\(.*\)"/\1/p' "${UNIPACK_DIR}/Cargo.toml" | awk 'NR==1{print; exit}'
 }
 
 is_prerelease_version() {
@@ -287,12 +287,12 @@ phase1_version_update() {
   if [[ "${DRY_RUN}" == true ]]; then
     log_info "[DRY-RUN] Would update version in Cargo.toml from ${current_ver} to ${new_ver}"
   else
-    sed -i "s/^version = \"${current_ver}\"/version = \"${new_ver}\"/" "${PACKMAN_DIR}/Cargo.toml"
+    sed -i "s/^version = \"${current_ver}\"/version = \"${new_ver}\"/" "${UNIPACK_DIR}/Cargo.toml"
     log_success "Updated Cargo.toml"
   fi
 
   log_step "Updating Cargo.lock"
-  cd "${PACKMAN_DIR}"
+  cd "${UNIPACK_DIR}"
   dry_run_cmd cargo check
   log_success "Cargo.lock updated"
 }
@@ -304,7 +304,7 @@ phase1_version_update() {
 phase2_documentation() {
   local new_ver="${1}"
   local old_ver="${2}"
-  local release_file="${PACKMAN_DIR}/Release-docs/RELEASE_v${new_ver}.md"
+  local release_file="${UNIPACK_DIR}/Release-docs/RELEASE_v${new_ver}.md"
 
   log_phase "2. Documentation"
 
@@ -433,10 +433,10 @@ phase3_pkgbuild_updates() {
     return 0
   fi
 
-  log_step "Update packman-bin PKGBUILD"
+  log_step "Update unipack-bin PKGBUILD"
   if [[ "${SKIP_AUR_BIN_PROCESS}" == true ]]; then
-    log_info "Skipping packman-bin PKGBUILD update."
-    mark_skipped "Phase 3.1: packman-bin PKGBUILD update"
+    log_info "Skipping unipack-bin PKGBUILD update."
+    mark_skipped "Phase 3.1: unipack-bin PKGBUILD update"
   elif [[ "${DRY_RUN}" == true ]]; then
     log_info "[DRY-RUN] Would update pkgver to ${new_ver} in ${AUR_BIN_DIR}/PKGBUILD"
     phase3_dry_run_pkgrel_msg
@@ -445,13 +445,13 @@ phase3_pkgbuild_updates() {
     sed -i "s/^pkgver=.*/pkgver=${new_ver}/" "${AUR_BIN_DIR}/PKGBUILD"
     apply_pkgrel_to_pkgbuild "${AUR_BIN_DIR}/PKGBUILD" "${PKGREL_MODE}" || return 1
     log_success "Updated ${AUR_BIN_DIR}/PKGBUILD (pkgrel mode: ${PKGREL_MODE})"
-    mark_done "Phase 3.1: packman-bin PKGBUILD updated"
+    mark_done "Phase 3.1: unipack-bin PKGBUILD updated"
   fi
 
-  log_step "Update packman-git PKGBUILD"
+  log_step "Update unipack-git PKGBUILD"
   if [[ "${SKIP_AUR_GIT_PROCESS}" == true ]]; then
-    log_info "Skipping packman-git PKGBUILD update."
-    mark_skipped "Phase 3.2: packman-git PKGBUILD update"
+    log_info "Skipping unipack-git PKGBUILD update."
+    mark_skipped "Phase 3.2: unipack-git PKGBUILD update"
   elif [[ "${DRY_RUN}" == true ]]; then
     log_info "[DRY-RUN] Would update pkgver to ${new_ver} in ${AUR_GIT_DIR}/PKGBUILD"
     phase3_dry_run_pkgrel_msg
@@ -461,7 +461,7 @@ phase3_pkgbuild_updates() {
     sed -i "s/^pkgver=.*/pkgver=${new_ver}/" "${AUR_GIT_DIR}/PKGBUILD"
     apply_pkgrel_to_pkgbuild "${AUR_GIT_DIR}/PKGBUILD" "${PKGREL_MODE}" || return 1
     log_success "Updated ${AUR_GIT_DIR}/PKGBUILD (pkgrel mode: ${PKGREL_MODE})"
-    mark_done "Phase 3.2: packman-git PKGBUILD updated"
+    mark_done "Phase 3.2: unipack-git PKGBUILD updated"
   fi
 
   log_success "PKGBUILD updates complete"
@@ -475,10 +475,10 @@ phase3_pkgbuild_updates() {
 phase4_build_release() {
   local new_ver="${1}"
   local tag="v${new_ver}"
-  local release_file="${PACKMAN_DIR}/Release-docs/RELEASE_v${new_ver}.md"
+  local release_file="${UNIPACK_DIR}/Release-docs/RELEASE_v${new_ver}.md"
 
   log_phase "4. Build and Release"
-  cd "${PACKMAN_DIR}"
+  cd "${UNIPACK_DIR}"
 
   log_step "Running quality and security checks"
   if ! dry_run_cmd cargo fmt --all; then
@@ -505,7 +505,7 @@ phase4_build_release() {
     log_error "cargo deny check failed"
     confirm_continue "Continue despite cargo deny failure?" || return 1
   fi
-  if ! dry_run_cmd gitleaks detect --source "${PACKMAN_DIR}" --no-banner; then
+  if ! dry_run_cmd gitleaks detect --source "${UNIPACK_DIR}" --no-banner; then
     log_error "gitleaks detect failed"
     confirm_continue "Continue despite gitleaks failure?" || return 1
   fi
@@ -566,7 +566,7 @@ phase4_build_release() {
     log_info "Monitor: https://github.com/${GITHUB_REPO}/actions (workflow: Release)"
   fi
 
-  if [[ "${PACKMAN_PUBLISH_CRATES:-0}" == "1" ]]; then
+  if [[ "${UNIPACK_PUBLISH_CRATES:-0}" == "1" ]]; then
     log_step "Verifying crates.io publish (dry-run)"
     dry_run_cmd cargo publish --dry-run
     log_success "crates.io publish verification passed"
@@ -582,7 +582,7 @@ phase4_build_release() {
       log_success "Published to crates.io"
     fi
   else
-    log_info "Skipping crates.io (set PACKMAN_PUBLISH_CRATES=1 to run cargo publish --dry-run and cargo publish)"
+    log_info "Skipping crates.io (set UNIPACK_PUBLISH_CRATES=1 to run cargo publish --dry-run and cargo publish)"
   fi
 }
 
@@ -610,7 +610,7 @@ phase5_aur_update() {
   wait_for_user "Press Enter when GitHub Action has completed..."
 
   if [[ "${SKIP_AUR_BIN_PROCESS}" == true ]]; then
-    log_info "Skipping AUR SHA sums (packman-bin process skipped)."
+    log_info "Skipping AUR SHA sums (unipack-bin process skipped)."
     mark_skipped "Phase 5.1: AUR SHA update"
   else
     if [[ "${DRY_RUN}" == true ]]; then
@@ -660,53 +660,53 @@ phase5_aur_update() {
     fi
   fi
 
-  log_step "Pushing packman-bin to AUR"
+  log_step "Pushing unipack-bin to AUR"
   if [[ "${SKIP_AUR_BIN_PROCESS}" == true ]]; then
-    log_info "Skipping packman-bin AUR push."
-    mark_skipped "Phase 5.2: packman-bin AUR push"
+    log_info "Skipping unipack-bin AUR push."
+    mark_skipped "Phase 5.2: unipack-bin AUR push"
   elif [[ "${DRY_RUN}" == true ]]; then
     log_info "[DRY-RUN] Would run ${AUR_PUSH_SCRIPT} in ${AUR_BIN_DIR}"
   else
     cd "${AUR_BIN_DIR}"
     log_info "Running ${AUR_PUSH_SCRIPT} in ${AUR_BIN_DIR}..."
     "${AUR_PUSH_SCRIPT}" || { log_warn "aur-push.sh may have failed"; confirm_continue "Continue anyway?" || return 1; }
-    log_success "Pushed packman-bin to AUR"
-    mark_done "Phase 5.2: packman-bin pushed to AUR"
+    log_success "Pushed unipack-bin to AUR"
+    mark_done "Phase 5.2: unipack-bin pushed to AUR"
   fi
 
-  log_step "Pushing packman-git to AUR"
+  log_step "Pushing unipack-git to AUR"
   if [[ "${SKIP_AUR_GIT_PROCESS}" == true ]]; then
-    log_info "Skipping packman-git AUR push."
-    mark_skipped "Phase 5.3: packman-git AUR push"
+    log_info "Skipping unipack-git AUR push."
+    mark_skipped "Phase 5.3: unipack-git AUR push"
   elif [[ "${DRY_RUN}" == true ]]; then
     log_info "[DRY-RUN] Would run ${AUR_PUSH_SCRIPT} in ${AUR_GIT_DIR}"
   else
     cd "${AUR_GIT_DIR}"
     log_info "Running ${AUR_PUSH_SCRIPT} in ${AUR_GIT_DIR}..."
     "${AUR_PUSH_SCRIPT}" || { log_warn "aur-push.sh may have failed"; confirm_continue "Continue anyway?" || return 1; }
-    log_success "Pushed packman-git to AUR"
-    mark_done "Phase 5.3: packman-git pushed to AUR"
+    log_success "Pushed unipack-git to AUR"
+    mark_done "Phase 5.3: unipack-git pushed to AUR"
   fi
 
-  log_step "Syncing PKGBUILDs to Packman repo"
+  log_step "Syncing PKGBUILDs to UniPack repo"
   if [[ "${SKIP_AUR_BIN_PROCESS}" == true || "${SKIP_AUR_GIT_PROCESS}" == true ]]; then
     log_info "Skipping PKGBUILD sync (requires both AUR processes)."
-    mark_skipped "Phase 5.4: PKGBUILD sync to Packman repo"
+    mark_skipped "Phase 5.4: PKGBUILD sync to UniPack repo"
   elif [[ "${DRY_RUN}" == true ]]; then
-    log_info "[DRY-RUN] Would copy ${AUR_BIN_DIR}/PKGBUILD to ${PACKMAN_DIR}/PKGBUILD-bin"
-    log_info "[DRY-RUN] Would copy ${AUR_GIT_DIR}/PKGBUILD to ${PACKMAN_DIR}/PKGBUILD-git"
-    log_info "[DRY-RUN] Would commit and push PKGBUILD changes to Packman repo"
+    log_info "[DRY-RUN] Would copy ${AUR_BIN_DIR}/PKGBUILD to ${UNIPACK_DIR}/PKGBUILD-bin"
+    log_info "[DRY-RUN] Would copy ${AUR_GIT_DIR}/PKGBUILD to ${UNIPACK_DIR}/PKGBUILD-git"
+    log_info "[DRY-RUN] Would commit and push PKGBUILD changes to UniPack repo"
   else
-    cp "${AUR_BIN_DIR}/PKGBUILD" "${PACKMAN_DIR}/PKGBUILD-bin"
-    cp "${AUR_GIT_DIR}/PKGBUILD" "${PACKMAN_DIR}/PKGBUILD-git"
+    cp "${AUR_BIN_DIR}/PKGBUILD" "${UNIPACK_DIR}/PKGBUILD-bin"
+    cp "${AUR_GIT_DIR}/PKGBUILD" "${UNIPACK_DIR}/PKGBUILD-git"
     log_success "Copied PKGBUILD files"
 
-    cd "${PACKMAN_DIR}"
+    cd "${UNIPACK_DIR}"
     git add PKGBUILD-bin PKGBUILD-git
     git commit -m "Update PKGBUILDs for v${new_ver}" || log_warn "PKGBUILD commit failed or nothing to commit"
     git push origin || { log_error "Failed to push PKGBUILD changes"; confirm_continue "Continue anyway?" || return 1; }
     log_success "PKGBUILD changes pushed to origin"
-    mark_done "Phase 5.4: PKGBUILD sync to Packman repo"
+    mark_done "Phase 5.4: PKGBUILD sync to UniPack repo"
   fi
 
   log_step "Pushing Wiki Changes"
@@ -757,19 +757,19 @@ ensure_release_layout_directories() {
     resolved="$(expand_tilde "${AUR_BIN_DIR}")"
     if [[ -d "${resolved}" ]] && [[ -f "${resolved}/PKGBUILD" ]]; then
       AUR_BIN_DIR="$(cd "${resolved}" && pwd)"
-      log_success "packman-bin AUR directory: ${AUR_BIN_DIR}"
-      mark_done "Configured packman-bin directory"
+      log_success "unipack-bin AUR directory: ${AUR_BIN_DIR}"
+      mark_done "Configured unipack-bin directory"
       break
     fi
-    log_warn "packman-bin path invalid or missing PKGBUILD: ${resolved}"
-    printf "%bEnter path to packman-bin clone (%bs%b to skip, %bq%b to abort): %b" "${CYAN}" "${BOLD}" "${RESET}" "${BOLD}" "${RESET}" "${RESET}"
+    log_warn "unipack-bin path invalid or missing PKGBUILD: ${resolved}"
+    printf "%bEnter path to unipack-bin clone (%bs%b to skip, %bq%b to abort): %b" "${CYAN}" "${BOLD}" "${RESET}" "${BOLD}" "${RESET}" "${RESET}"
     read -r input || return 1
     case "${input}" in
       s|S)
         SKIP_AUR_BIN_PROCESS=true
         AUR_BIN_DIR=""
-        log_warn "packman-bin process will be skipped for this run."
-        mark_skipped "Skipped packman-bin process by user choice"
+        log_warn "unipack-bin process will be skipped for this run."
+        mark_skipped "Skipped unipack-bin process by user choice"
         break
         ;;
       q|Q) log_error "Aborted."; return 1 ;;
@@ -782,19 +782,19 @@ ensure_release_layout_directories() {
     resolved="$(expand_tilde "${AUR_GIT_DIR}")"
     if [[ -d "${resolved}" ]] && [[ -f "${resolved}/PKGBUILD" ]]; then
       AUR_GIT_DIR="$(cd "${resolved}" && pwd)"
-      log_success "packman-git AUR directory: ${AUR_GIT_DIR}"
-      mark_done "Configured packman-git directory"
+      log_success "unipack-git AUR directory: ${AUR_GIT_DIR}"
+      mark_done "Configured unipack-git directory"
       break
     fi
-    log_warn "packman-git path invalid or missing PKGBUILD: ${resolved}"
-    printf "%bEnter path to packman-git clone (%bs%b to skip, %bq%b to abort): %b" "${CYAN}" "${BOLD}" "${RESET}" "${BOLD}" "${RESET}" "${RESET}"
+    log_warn "unipack-git path invalid or missing PKGBUILD: ${resolved}"
+    printf "%bEnter path to unipack-git clone (%bs%b to skip, %bq%b to abort): %b" "${CYAN}" "${BOLD}" "${RESET}" "${BOLD}" "${RESET}" "${RESET}"
     read -r input || return 1
     case "${input}" in
       s|S)
         SKIP_AUR_GIT_PROCESS=true
         AUR_GIT_DIR=""
-        log_warn "packman-git process will be skipped for this run."
-        mark_skipped "Skipped packman-git process by user choice"
+        log_warn "unipack-git process will be skipped for this run."
+        mark_skipped "Skipped unipack-git process by user choice"
         break
         ;;
       q|Q) log_error "Aborted."; return 1 ;;
@@ -806,8 +806,8 @@ ensure_release_layout_directories() {
   if [[ -z "${WIKI_DIR}" ]]; then
     SKIP_WIKI_PROCESS=true
     WIKI_DIR=""
-    log_info "PACKMAN_WIKI_DIR unset — wiki steps skipped (set it to enable wiki push)."
-    mark_skipped "Wiki (PACKMAN_WIKI_DIR unset)"
+    log_info "UNIPACK_WIKI_DIR unset — wiki steps skipped (set it to enable wiki push)."
+    mark_skipped "Wiki (UNIPACK_WIKI_DIR unset)"
   else
     resolved="$(expand_tilde "${WIKI_DIR}")"
     if [[ -d "${resolved}" ]]; then
@@ -865,13 +865,13 @@ check_prerequisites() {
     return 1
   fi
 
-  [[ -d "${PACKMAN_DIR}" ]] || { log_error "Packman directory not found: ${PACKMAN_DIR}"; return 1; }
+  [[ -d "${UNIPACK_DIR}" ]] || { log_error "UniPack directory not found: ${UNIPACK_DIR}"; return 1; }
 
   log_success "All prerequisites met"
 }
 
 # What: Verifies commands and paths needed for phase 5 (AUR update) only.
-# Inputs: None (uses globals PACKMAN_DIR, scripts, START_FROM_PHASE not read).
+# Inputs: None (uses globals UNIPACK_DIR, scripts, START_FROM_PHASE not read).
 # Output: Returns 0 when requirements are met; 1 otherwise.
 # Details: Skips cargo, gitleaks, and other full-release-only tools.
 check_prerequisites_phase5_only() {
@@ -892,7 +892,7 @@ check_prerequisites_phase5_only() {
     return 1
   fi
 
-  [[ -d "${PACKMAN_DIR}" ]] || { log_error "Packman directory not found: ${PACKMAN_DIR}"; return 1; }
+  [[ -d "${UNIPACK_DIR}" ]] || { log_error "UniPack directory not found: ${UNIPACK_DIR}"; return 1; }
 
   log_success "Phase 5 prerequisites met"
 }
@@ -904,7 +904,7 @@ check_prerequisites_phase5_only() {
 check_preflight() {
   local current_branch git_status expected_branch
   log_info "Running pre-flight checks..."
-  cd "${PACKMAN_DIR}"
+  cd "${UNIPACK_DIR}"
 
   expected_branch="$(
     git symbolic-ref -q refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || true
@@ -937,7 +937,7 @@ check_preflight() {
 
 update_security_md() {
   local new_ver="${1}"
-  local security_file="${PACKMAN_DIR}/SECURITY.md"
+  local security_file="${UNIPACK_DIR}/SECURITY.md"
   local major minor major_minor tmp_file table_updated=false
 
   log_step "Updating SECURITY.md"
@@ -1006,8 +1006,8 @@ update_security_md() {
 
 update_changelog() {
   local new_ver="${1}"
-  local changelog_file="${PACKMAN_DIR}/CHANGELOG.md"
-  local release_file="${PACKMAN_DIR}/Release-docs/RELEASE_v${new_ver}.md"
+  local changelog_file="${UNIPACK_DIR}/CHANGELOG.md"
+  local release_file="${UNIPACK_DIR}/Release-docs/RELEASE_v${new_ver}.md"
   local release_date tmp_file existing_version_line version_start version_end first_version_line
 
   log_step "Updating CHANGELOG.md"
@@ -1021,7 +1021,7 @@ update_changelog() {
     cat > "${changelog_file}" <<'EOF'
 # Changelog
 
-All notable changes to Packman will be documented in this file.
+All notable changes to UniPack will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
@@ -1174,7 +1174,7 @@ EOF
 
   echo
   printf "%b╔════════════════════════════════════════════════════════════════════════╗%b\n" "${BOLD_CYAN}" "${RESET}"
-  printf "%b║                    PACKMAN RELEASE AUTOMATION                         ║%b\n" "${BOLD_CYAN}" "${RESET}"
+  printf "%b║                    UniPack RELEASE AUTOMATION                         ║%b\n" "${BOLD_CYAN}" "${RESET}"
   printf "%b╚════════════════════════════════════════════════════════════════════════╝%b\n\n" "${BOLD_CYAN}" "${RESET}"
 
   if [[ "${START_FROM_PHASE}" == "5" ]]; then

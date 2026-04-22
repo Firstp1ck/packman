@@ -1,6 +1,6 @@
-# PackMan — AI agent quick reference
+# UniPack — AI agent quick reference
 
-PackMan is a **Rust terminal UI** for browsing and managing packages across **pip, npm, bun, cargo, brew, apt, pacman, AUR (yay/paru), rpm, flatpak, snap**. Implementation: `src/lib.rs` (app + UI loop), `src/pkg_manager.rs` (backend commands), `src/main.rs` (binary wrapper with `#![allow(clippy::all)]`).
+UniPack is a **Rust terminal UI** for browsing and managing packages across **pip, npm, bun, cargo, brew, apt, pacman, AUR (yay/paru), rpm, flatpak, snap**. Implementation: `src/lib.rs` (app + UI loop), `src/pkg_manager.rs` (backend commands), `src/main.rs` (binary wrapper with `#![allow(clippy::all)]`).
 
 ## Commands (run from repo root)
 

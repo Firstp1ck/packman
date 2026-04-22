@@ -1,11 +1,11 @@
-# PackMan — Product specification
+# UniPack — Product specification
 
-This document describes the **PackMan** TUI as implemented in this repository (see `src/lib.rs`, `src/pkg_manager.rs`, `src/package_cache.rs`, `src/all_upgradables.rs`). It is the source of truth for current behavior, not a roadmap.
+This document describes the **UniPack** TUI as implemented in this repository (see `src/lib.rs`, `src/pkg_manager.rs`, `src/package_cache.rs`, `src/all_upgradables.rs`). It is the source of truth for current behavior, not a roadmap.
 
 ## Project overview
 
-- **Name**: PackMan
-- **Kind**: Rust terminal application (`ratatui` + `crossterm`), library crate `packman` with a thin `main` binary
+- **Name**: UniPack
+- **Kind**: Rust terminal application (`ratatui` + `crossterm`), library crate `unipack` with a thin `main` binary
 - **Purpose**: Browse installed packages across several backends from one UI, filter and search, install/remove/upgrade where supported, and inspect cross-manager updates in an overlay
 - **Audience**: Developers and admins who use multiple package ecosystems on Linux (and macOS where Homebrew or other tools apply)
 
@@ -44,7 +44,7 @@ Privileged installs/removes/upgrades for several backends run **`sudo …`** in 
 
 Three vertical regions:
 
-1. **Header** (3 lines): horizontal split — **title** (“PackMan”), **package manager tabs** (`ratatui::widgets::Tabs`, not a vertical sidebar), **distro** string from `/etc/os-release` (or simple fallbacks).
+1. **Header** (3 lines): horizontal split — **title** (“UniPack”), **package manager tabs** (`ratatui::widgets::Tabs`, not a vertical sidebar), **distro** string from `/etc/os-release` (or simple fallbacks).
 2. **Body**: either the main package `Table`, a loading line, empty-state text, or the **all upgradables** overlay table.
 3. **Footer** (4 lines): multi-column key hints and a one-line **status** strip (selected package name, version, optional `→` latest, status).
 
@@ -123,7 +123,7 @@ Terminal UIs are **cell-based**; font size in “px” is not controlled by the 
 | `Esc` | In search: leave search; otherwise quit |
 | `q` | Quit (when not in search mode) |
 
-`packman --help` / `-h` prints a short summary to stdout (no TUI).
+`unipack --help` / `-h` prints a short summary to stdout (no TUI).
 
 ## Behavior and data
 
@@ -135,7 +135,7 @@ Terminal UIs are **cell-based**; font size in “px” is not controlled by the 
 
 ### Caching
 
-- On-disk cache: **`$TMPDIR/packman/package_lists.json`** (see `package_cache.rs`).
+- On-disk cache: **`$TMPDIR/unipack/package_lists.json`** (see `package_cache.rs`).
 - Invalidation uses a **fingerprint** of detected managers (name/command/list_command), not a wall-clock timestamp field.
 - Load at startup is best-effort; save runs after successful loads/merges and on exit.
 

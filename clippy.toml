@@ -1,4 +1,4 @@
-# Clippy configuration for Packman
+# Clippy configuration for UniPack
 # See https://doc.rust-lang.org/nightly/clippy/lint_configuration.html
 
 # Cognitive complexity threshold

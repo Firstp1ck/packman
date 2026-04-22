@@ -1,6 +1,6 @@
 # announce-version
 
-Create a short announcement for the **given PackMan version** (release day blurb).
+Create a short announcement for the **given UniPack version** (release day blurb).
 
 - User-friendly, **max ~800 characters** for the postable summary.
 - Save to **`dev/ANNOUNCEMENTS/version_announcement_content.md`** (create `dev/ANNOUNCEMENTS/` if missing).

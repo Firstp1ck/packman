@@ -1,4 +1,4 @@
-//! `PackMan`: cross-backend package listing and a [`ratatui`] event loop.
+//! `UniPack`: cross-backend package listing and a [`ratatui`] event loop.
 //!
 //! The binary entry point is thin; this library holds application state and rendering.
 
@@ -802,7 +802,7 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
         ])
         .split(area);
 
-    let title = Paragraph::new(" PackMan ")
+    let title = Paragraph::new(" UniPack ")
         .style(Style::default().fg(COLORS.primary))
         .block(
             Block::bordered()
@@ -1659,9 +1659,9 @@ fn advance_upgrade_merge_chunk(app: &mut App) {
 pub fn run() {
     let args: Vec<String> = std::env::args().collect();
     if args.iter().any(|a| a == "-h" || a == "--help") {
-        println!("📦 PackMan - Package Manager TUI");
+        println!("📦 UniPack - Package Manager TUI");
         println!();
-        println!("Usage: packman [OPTIONS]");
+        println!("Usage: unipack [OPTIONS]");
         println!();
         println!("Options:");
         println!("  -h, --help     Show this help message");

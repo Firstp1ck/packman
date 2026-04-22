@@ -1,6 +1,6 @@
-//! Binary entry point for the `packman` executable.
+//! Binary entry point for the `unipack` executable.
 #![allow(clippy::all)]
 
 fn main() {
-    packman::run();
+    unipack::run();
 }

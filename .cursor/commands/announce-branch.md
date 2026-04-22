@@ -1,6 +1,6 @@
 # announce-branch
 
-Create a short announcement for the **current PackMan branch** (what will ship or what testers should try).
+Create a short announcement for the **current UniPack branch** (what will ship or what testers should try).
 
 - User-friendly, **max ~800 characters** for the part you’d post (Discord/Matrix/GitHub discussion)—the file can hold slightly more structure if needed.
 - Save to **`dev/ANNOUNCEMENTS/branch_announcement_content.md`** (create `dev/ANNOUNCEMENTS/` if missing).

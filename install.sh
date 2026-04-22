@@ -2,7 +2,7 @@
 
 set -e
 
-REPO="aliabdoxd14-sudo/packman"
+REPO="aliabdoxd14-sudo/unipack"
 INSTALL_DIR="${HOME}/.local/bin"
 VERSION=$(curl -sL "https://api.github.com/repos/${REPO}/releases/latest" | grep -o '"tag_name": "[^"]*' | cut -d'"' -f4)
 
@@ -26,21 +26,21 @@ install() {
     local platform=$(detect_platform)
     local arch=$(detect_arch)
     
-    local filename="packman-${platform}-${arch}"
+    local filename="unipack-${platform}-${arch}"
     local url="https://github.com/${REPO}/releases/download/${VERSION}/${filename}"
     
-    echo "Downloading PackMan ${VERSION} for ${platform}-${arch}..."
-    curl -fSL "$url" -o "/tmp/packman" || die "Failed to download PackMan"
+    echo "Downloading UniPack ${VERSION} for ${platform}-${arch}..."
+    curl -fSL "$url" -o "/tmp/unipack" || die "Failed to download UniPack"
     
     if [ ! -d "$INSTALL_DIR" ]; then
         mkdir -p "$INSTALL_DIR"
     fi
     
-    mv "/tmp/packman" "${INSTALL_DIR}/packman"
-    chmod +x "${INSTALL_DIR}/packman"
+    mv "/tmp/unipack" "${INSTALL_DIR}/unipack"
+    chmod +x "${INSTALL_DIR}/unipack"
     
-    echo "Installed PackMan to ${INSTALL_DIR}/packman"
-    echo "Add '${INSTALL_DIR}' to your PATH to use packman from anywhere"
+    echo "Installed UniPack to ${INSTALL_DIR}/unipack"
+    echo "Add '${INSTALL_DIR}' to your PATH to use unipack from anywhere"
 }
 
 die() {

@@ -1,12 +1,12 @@
-# Rust development rules for AI agents (PackMan)
+# Rust development rules for AI agents (UniPack)
 
-PackMan is a small **Rust TUI** ([ratatui](https://github.com/ratatui-org/ratatui), [crossterm](https://github.com/crossterm-rs/crossterm), [tokio](https://tokio.rs)) that lists and manages packages across **multiple backends** (pip, npm, bun, cargo, brew, apt, pacman, AUR helpers, rpm, flatpak, snap). Product intent and UI notes live in `SPEC.md`; user-facing docs in `README.md`.
+UniPack is a small **Rust TUI** ([ratatui](https://github.com/ratatui-org/ratatui), [crossterm](https://github.com/crossterm-rs/crossterm), [tokio](https://tokio.rs)) that lists and manages packages across **multiple backends** (pip, npm, bun, cargo, brew, apt, pacman, AUR helpers, rpm, flatpak, snap). Product intent and UI notes live in `SPEC.md`; user-facing docs in `README.md`.
 
 ## Crate layout
 
 | Path | Role |
 |------|------|
-| `src/main.rs` | Thin binary entry (`packman::run()`); `#![allow(clippy::all)]` so the binary does not drive lint policy. |
+| `src/main.rs` | Thin binary entry (`unipack::run()`); `#![allow(clippy::all)]` so the binary does not drive lint policy. |
 | `src/lib.rs` | App state, distro/PM detection, Ratatui render loop, keyboard handling. |
 | `src/pkg_manager.rs` | `PackageManager`: list/install/remove/upgrade via `std::process::Command` and shell snippets. |
 
@@ -98,7 +98,7 @@ With `cargo clippy ... -- -D warnings`, **warnings are errors** for any lint tha
 - **Never** grow new `format!("... {} ...", user_input)` shell strings without an explicit safety review path.
 - Long-running / network shell snippets already go through helpers like `run_shell` (timeout in `pkg_manager.rs`); keep timeouts when adding similar calls.
 
-There are **no** application-level secrets, curl wrappers, or `PACKMAN_*`-style test env vars in this repo—do not copy security checklists from other projects wholesale; anchor guidance in **this** codebase.
+There are **no** application-level secrets, curl wrappers, or `UNIPACK_*`-style test env vars in this repo—do not copy security checklists from other projects wholesale; anchor guidance in **this** codebase.
 
 ## Dependencies
 

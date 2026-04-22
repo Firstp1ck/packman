@@ -1,14 +1,14 @@
-# 📦 PackMan
+# 📦 UniPack
 
 > A fast, unified TUI for all your package managers — built with Rust.
 
-![PackMan main TUI](images/Mainpage_v0.1.0.png)
+![UniPack main TUI](images/Mainpage_v0.1.0.png)
 
 ![Rust](https://img.shields.io/badge/built_with-Rust-orange?style=flat-square&logo=rust)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS-lightgrey?style=flat-square)
 
-PackMan lets you browse, search, install, remove, and upgrade packages across **pip, npm, bun, cargo, apt, pacman, AUR, rpm, flatpak, snap, and brew** — all from one terminal UI. It **remembers your package lists between runs** so reopening feels quicker, and it can **show when updates are available** where the underlying tools support it. Press **`a`** anytime to open an **all-updates** view across every manager PackMan found: pick multiple rows and upgrade in one go.
+UniPack lets you browse, search, install, remove, and upgrade packages across **pip, npm, bun, cargo, apt, pacman, AUR, rpm, flatpak, snap, and brew** — all from one terminal UI. It **remembers your package lists between runs** so reopening feels quicker, and it can **show when updates are available** where the underlying tools support it. Press **`a`** anytime to open an **all-updates** view across every manager UniPack found: pick multiple rows and upgrade in one go.
 
 ---
 
@@ -49,19 +49,19 @@ PackMan lets you browse, search, install, remove, and upgrade packages across **
 ### From source
 
 ```bash
-git clone https://github.com/Firstp1ck/packman
-cd packman
+git clone https://github.com/Firstp1ck/unipack
+cd unipack
 cargo build --release
-sudo cp target/release/packman /usr/local/bin/
+sudo cp target/release/unipack /usr/local/bin/
 ```
 
 ### Arch Linux (`makepkg`)
 
-This repository includes [`PKGBUILD`](PKGBUILD) for building and installing with Arch’s `makepkg`. It produces the `packman-git` package (provides `packman`) and pulls the latest sources during the build.
+This repository includes [`PKGBUILD`](PKGBUILD) for building and installing with Arch’s `makepkg`. It produces the `unipack-git` package (provides `unipack`) and pulls the latest sources during the build.
 
 ```bash
-git clone https://github.com/Firstp1ck/packman
-cd packman
+git clone https://github.com/Firstp1ck/unipack
+cd unipack
 makepkg -si
 ```
 
@@ -70,7 +70,7 @@ You need the **base-devel** group (for `makepkg`) and network access so the PKGB
 ### Requirements
 
 - **Rust** — current **stable** toolchain (install or update via [rustup](https://rustup.rs))
-- Any of the package managers above that you want PackMan to control
+- Any of the package managers above that you want UniPack to control
 
 ---
 
@@ -97,12 +97,12 @@ You need the **base-devel** group (for `makepkg`) and network access so the PKGB
 ## 🛠 Usage
 
 ```bash
-# Launch PackMan
-packman
+# Launch UniPack
+unipack
 
 # Show help (stdout, no TUI)
-packman --help
-packman -h
+unipack --help
+unipack -h
 ```
 
 **To install a package:** press `/`, type the name, then `i`.
