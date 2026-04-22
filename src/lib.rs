@@ -172,6 +172,10 @@ pub struct AllUpgradablesOverlay {
     pub cursor: usize,
     /// Row indices selected for upgrade.
     pub selected: BTreeSet<usize>,
+    /// Substring filter while search mode is active.
+    pub search_query: String,
+    /// When true, typed keys append to `search_query` instead of triggering actions.
+    pub search_mode: bool,
 }
 
 /// UI state for one package upgrade triggered via `u`.
@@ -195,7 +199,9 @@ pub struct MultiUpgradeProgress {
 }
 
 enum MultiUpgradeProgressEvent {
-    StepStart { package_name: String },
+    StepStart {
+        package_name: String,
+    },
     StepDone {
         pm_index: usize,
         package_name: String,
@@ -269,6 +275,8 @@ pub struct App {
     preload_op_epoch: u64,
     /// Sender for preload worker results; set in [`run`].
     preload_result_tx: Option<PreloadSender>,
+    /// Manager names that already showed the one-time sudo hint this session.
+    shown_privilege_hint_for: BTreeSet<String>,
 }
 
 impl App {
@@ -317,6 +325,7 @@ impl App {
             preload_inflight_indices: BTreeSet::new(),
             preload_op_epoch: 0,
             preload_result_tx: None,
+            shown_privilege_hint_for: BTreeSet::new(),
         })
     }
 
@@ -697,6 +706,28 @@ fn footer_hint(text: &str) -> Span<'_> {
     Span::styled(text, Style::default().fg(COLORS.secondary))
 }
 
+/// Heuristic progress for single-package upgrades.
+///
+/// We do not receive granular progress updates from package managers, so this returns a
+/// monotonic estimate that moves quickly at first and then gradually slows, capped at 95%
+/// until the worker reports completion.
+//
+// The cast to `u16` is safe: the computed percent is bounded to 8..=95 in every branch.
+#[allow(clippy::cast_possible_truncation)]
+const fn single_upgrade_percent(elapsed_ms: u64) -> u16 {
+    // 0s..10s => 8%..80%, then 10s..45s => 80%..95%, after that clamp at 95%.
+    if elapsed_ms <= 10_000 {
+        let pct = 8_u64 + ((elapsed_ms * 72_u64) / 10_000_u64);
+        return pct as u16;
+    }
+    if elapsed_ms <= 45_000 {
+        let tail_ms = elapsed_ms - 10_000_u64;
+        let pct = 80_u64 + ((tail_ms * 15_u64) / 35_000_u64);
+        return pct as u16;
+    }
+    95
+}
+
 /// Truncates to fit `max_cols` display columns, then appends `…` when shortened.
 fn clip_display_width(s: &str, max_cols: u16) -> String {
     let max = usize::from(max_cols);
@@ -826,19 +857,75 @@ fn render_app(frame: &mut Frame, app: &App) {
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Length(3),
+            Constraint::Length(1),
             Constraint::Min(0),
             Constraint::Length(4),
         ])
         .split(frame.area());
 
     render_header(frame, app, chunks[0]);
+    render_info_strip(frame, app, chunks[1]);
     if let Some(ref overlay) = app.all_upgradables {
-        render_all_upgradables_body(frame, overlay, chunks[1]);
-        render_all_upgradables_footer(frame, app, chunks[2]);
+        render_all_upgradables_body(frame, overlay, chunks[2]);
+        render_all_upgradables_footer(frame, app, chunks[3]);
     } else {
-        render_body(frame, app, chunks[1]);
-        render_footer(frame, app, chunks[2]);
+        render_body(frame, app, chunks[2]);
+        render_footer(frame, app, chunks[3]);
     }
+}
+
+fn current_info_text(app: &App) -> String {
+    if let Some(progress) = app.single_upgrade.as_ref() {
+        let elapsed_s = progress.started_at.elapsed().as_secs();
+        return format!(
+            "Upgrading {} · {}s elapsed",
+            progress.package_name, elapsed_s
+        );
+    }
+    if let Some(msg) = app.message.as_ref() {
+        return msg.clone();
+    }
+    app.filtered_packages()
+        .get(app.selected_package_index)
+        .map_or_else(
+            || "— none —".to_string(),
+            |(_, pkg)| {
+                pkg.latest_version.as_ref().map_or_else(
+                    || format!("{} {} · {}", pkg.name, pkg.version, pkg.status),
+                    |latest| format!("{} {} → {} · {}", pkg.name, pkg.version, latest, pkg.status),
+                )
+            },
+        )
+}
+
+fn render_info_strip(f: &mut Frame, app: &App, area: Rect) {
+    if let Some(progress) = app.single_upgrade.as_ref() {
+        let elapsed_millis =
+            u64::try_from(progress.started_at.elapsed().as_millis()).unwrap_or(u64::MAX);
+        let elapsed_seconds = elapsed_millis / 1_000_u64;
+        let pct = single_upgrade_percent(elapsed_millis);
+        let gauge = Gauge::default()
+            .gauge_style(Style::default().fg(COLORS.accent).bg(COLORS.surface))
+            .label(format!(
+                "Upgrading {} · {}s elapsed",
+                progress.package_name, elapsed_seconds
+            ))
+            .percent(pct);
+        f.render_widget(gauge, area);
+        return;
+    }
+
+    let raw_info = current_info_text(app);
+    let info = clip_display_width(&raw_info, area.width);
+    let info_color = if raw_info.contains("sudo -v") {
+        COLORS.warning
+    } else {
+        COLORS.accent
+    };
+    let text = Paragraph::new(info)
+        .style(Style::default().fg(info_color).bg(COLORS.surface))
+        .alignment(Alignment::Left);
+    f.render_widget(text, area);
 }
 
 fn render_header(f: &mut Frame, app: &App, area: Rect) {
@@ -991,13 +1078,7 @@ fn render_body(f: &mut Frame, app: &App, area: Rect) {
 }
 
 fn render_footer(f: &mut Frame, app: &App, area: Rect) {
-    let rows = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Length(3), Constraint::Length(1)])
-        .split(area);
-
-    let hints_area = rows[0];
-    let status_area = rows[1];
+    let hints_area = area;
 
     if app.search_mode {
         let q = if app.search_query.is_empty() {
@@ -1089,69 +1170,36 @@ fn render_footer(f: &mut Frame, app: &App, area: Rect) {
         f.render_widget(Paragraph::new(col_pkg).alignment(Alignment::Left), cols[2]);
         f.render_widget(Paragraph::new(col_sys).alignment(Alignment::Left), cols[3]);
     }
-
-    if let Some(progress) = app.single_upgrade.as_ref() {
-        let elapsed_ms = progress.started_at.elapsed().as_millis() as u64;
-        let cycle_ms = 1_800_u64;
-        let half_cycle = cycle_ms / 2;
-        let phase = elapsed_ms % cycle_ms;
-        let ramp = if phase <= half_cycle {
-            phase
-        } else {
-            cycle_ms - phase
-        };
-        let animated = 20_u16 + ((ramp * 75_u64) / half_cycle.max(1)) as u16;
-        let gauge = Gauge::default()
-            .gauge_style(Style::default().fg(COLORS.accent).bg(COLORS.surface))
-            .label(format!("Upgrading {}...", progress.package_name))
-            .percent(animated);
-        f.render_widget(gauge, status_area);
-    } else {
-        let status = app
-            .filtered_packages()
-            .get(app.selected_package_index)
-            .map_or_else(
-                || "— none —".to_string(),
-                |(_, pkg)| {
-                    pkg.latest_version.as_ref().map_or_else(
-                        || format!("{} {} · {}", pkg.name, pkg.version, pkg.status),
-                        |latest| format!("{} {} → {} · {}", pkg.name, pkg.version, latest, pkg.status),
-                    )
-                },
-            );
-
-        let status_fit = clip_display_width(&status, status_area.width);
-        let status_text = Paragraph::new(status_fit)
-            .style(Style::default().fg(COLORS.accent))
-            .alignment(Alignment::Right);
-
-        f.render_widget(status_text, status_area);
-    }
 }
 
 fn render_all_upgradables_body(f: &mut Frame, overlay: &AllUpgradablesOverlay, area: Rect) {
-    if overlay.rows.is_empty() {
-        let msg = Paragraph::new("No upgradable packages found")
-            .style(Style::default().fg(COLORS.warning))
-            .alignment(Alignment::Center);
+    let filtered = overlay_filtered_rows(overlay);
+
+    if filtered.is_empty() {
+        let msg = Paragraph::new(if overlay.search_query.is_empty() {
+            "No upgradable packages found"
+        } else {
+            "No packages match your search"
+        })
+        .style(Style::default().fg(COLORS.warning))
+        .alignment(Alignment::Center);
         f.render_widget(msg, area);
         return;
     }
 
     let visible_rows = (area.height as usize).saturating_sub(2);
-    let max_scroll = overlay.rows.len().saturating_sub(visible_rows);
+    let max_scroll = filtered.len().saturating_sub(visible_rows);
     let half_visible = visible_rows / 2;
     let scroll_offset = overlay.cursor.saturating_sub(half_visible).min(max_scroll);
 
-    let rows: Vec<_> = overlay
-        .rows
+    let rows: Vec<_> = filtered
         .iter()
-        .enumerate()
         .skip(scroll_offset)
         .take(visible_rows)
-        .map(|(idx, row)| {
-            let is_cursor = idx == overlay.cursor;
-            let mark = if overlay.selected.contains(&idx) {
+        .enumerate()
+        .map(|(visible_idx, (idx, row))| {
+            let is_cursor = visible_idx + scroll_offset == overlay.cursor;
+            let mark = if overlay.selected.contains(idx) {
                 "[x]"
             } else {
                 "[ ]"
@@ -1199,6 +1247,50 @@ fn render_all_upgradables_footer(f: &mut Frame, app: &App, area: Rect) {
         .expect("overlay footer only rendered while overlay exists");
     let n_sel = overlay.selected.len();
     let step = LIST_SCROLL_STEP;
+
+    if overlay.search_mode {
+        let q = if overlay.search_query.is_empty() {
+            "…"
+        } else {
+            overlay.search_query.as_str()
+        };
+        let banner = Paragraph::new(Line::from(vec![
+            Span::styled(
+                " SEARCH  ",
+                Style::default().fg(COLORS.bg).bg(COLORS.warning),
+            ),
+            Span::styled(
+                format!(" {q} "),
+                Style::default().fg(COLORS.warning).bg(COLORS.surface),
+            ),
+        ]))
+        .alignment(Alignment::Left);
+        let hint_rows = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Length(1), Constraint::Length(2)])
+            .split(area);
+        f.render_widget(banner, hint_rows[0]);
+
+        let cols = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Percentage(34),
+                Constraint::Percentage(33),
+                Constraint::Percentage(33),
+            ])
+            .split(hint_rows[1]);
+        let c0 = Text::from(vec![
+            footer_col_line([footer_key("Enter")], " keep filter "),
+            footer_col_line([footer_key("Esc")], " clear search "),
+        ]);
+        let c1 = Text::from(vec![footer_col_line([footer_key("type")], " filter name ")]);
+        let c2 = Text::from(vec![footer_col_line([footer_key("Bksp")], " delete char ")]);
+        f.render_widget(Paragraph::new(c0).alignment(Alignment::Left), cols[0]);
+        f.render_widget(Paragraph::new(c1).alignment(Alignment::Left), cols[1]);
+        f.render_widget(Paragraph::new(c2).alignment(Alignment::Left), cols[2]);
+        return;
+    }
+
     let rows = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Length(3), Constraint::Length(1)])
@@ -1254,9 +1346,12 @@ fn render_all_upgradables_footer(f: &mut Frame, app: &App, area: Rect) {
                 .current_started_at
                 .as_ref()
                 .map_or(0_u128, |t| t.elapsed().as_millis());
-            let sub_progress_per_mille = ((elapsed_ms * 1000) / 7000).min(950) as usize;
+            let sub_progress_per_mille =
+                usize::try_from(((elapsed_ms * 1000) / 7000).min(950)).unwrap_or(950);
             let units_per_mille = progress.done.saturating_mul(1000) + sub_progress_per_mille;
-            ((units_per_mille.saturating_mul(100)) / (progress.total.saturating_mul(1000))) as u16
+            let pct_usize =
+                (units_per_mille.saturating_mul(100)) / (progress.total.saturating_mul(1000));
+            u16::try_from(pct_usize).unwrap_or(100)
         };
         let label = progress.current_package.as_ref().map_or_else(
             || format!("{}/{} complete", progress.done, progress.total),
@@ -1275,10 +1370,7 @@ fn render_all_upgradables_footer(f: &mut Frame, app: &App, area: Rect) {
     }
 }
 
-fn upgrade_all_upgradables_selection(
-    app: &mut App,
-    multi_upgrade_tx: &MultiUpgradeSender,
-) {
+fn upgrade_all_upgradables_selection(app: &mut App, multi_upgrade_tx: &MultiUpgradeSender) {
     let Some(overlay) = app.all_upgradables.as_mut() else {
         return;
     };
@@ -1343,15 +1435,43 @@ fn overlay_scroll_page(app: &mut App, down: bool) {
     let Some(o) = app.all_upgradables.as_mut() else {
         return;
     };
-    if o.rows.is_empty() {
+    let filtered_count = overlay_filtered_rows(o).len();
+    if filtered_count == 0 {
         return;
     }
-    let max = o.rows.len() - 1;
+    let max = filtered_count - 1;
     o.cursor = if down {
         o.cursor.saturating_add(LIST_SCROLL_STEP).min(max)
     } else {
         o.cursor.saturating_sub(LIST_SCROLL_STEP)
     };
+}
+
+fn overlay_filtered_rows(overlay: &AllUpgradablesOverlay) -> Vec<(usize, &UpgradableRow)> {
+    overlay
+        .rows
+        .iter()
+        .enumerate()
+        .filter(|(_, row)| {
+            if overlay.search_query.is_empty() {
+                return true;
+            }
+            let query = overlay.search_query.to_lowercase();
+            row.name.to_lowercase().contains(&query)
+                || row.pm_name.to_lowercase().contains(&query)
+                || row.old_version.to_lowercase().contains(&query)
+                || row.new_version.to_lowercase().contains(&query)
+        })
+        .collect()
+}
+
+fn overlay_clamp_cursor(overlay: &mut AllUpgradablesOverlay) {
+    let count = overlay_filtered_rows(overlay).len();
+    if count > 0 {
+        overlay.cursor = overlay.cursor.min(count - 1);
+    } else {
+        overlay.cursor = 0;
+    }
 }
 
 /// Toggles overlay rows whose backend label starts with `letter` (ASCII, case-insensitive).
@@ -1393,23 +1513,63 @@ fn handle_all_upgradables_key(
     modifiers: KeyModifiers,
     multi_upgrade_tx: &MultiUpgradeSender,
 ) {
+    if app
+        .all_upgradables
+        .as_ref()
+        .is_some_and(|overlay| overlay.search_mode)
+    {
+        if let Some(overlay) = app.all_upgradables.as_mut() {
+            match code {
+                KeyCode::Esc | KeyCode::Char('\u{1b}') => {
+                    overlay.search_mode = false;
+                    overlay.search_query.clear();
+                    overlay.cursor = 0;
+                }
+                KeyCode::Enter => {
+                    overlay.search_mode = false;
+                    overlay_clamp_cursor(overlay);
+                }
+                KeyCode::Backspace => {
+                    overlay.search_query.pop();
+                    overlay_clamp_cursor(overlay);
+                }
+                KeyCode::Char(c) => {
+                    overlay.search_query.push(c);
+                    overlay_clamp_cursor(overlay);
+                }
+                _ => {}
+            }
+        }
+        return;
+    }
+
     match code {
-        KeyCode::Esc | KeyCode::Char('q') => {
+        KeyCode::Esc | KeyCode::Char('\u{1b}') => {
+            if let Some(overlay) = app.all_upgradables.as_mut() {
+                if overlay.search_query.is_empty() {
+                    app.all_upgradables = None;
+                } else {
+                    overlay.search_query.clear();
+                    overlay.cursor = 0;
+                }
+            }
+        }
+        KeyCode::Char('q') => {
             app.all_upgradables = None;
         }
         KeyCode::Up | KeyCode::Char('k') => {
             if let Some(o) = app.all_upgradables.as_mut()
-                && !o.rows.is_empty()
+                && !overlay_filtered_rows(o).is_empty()
             {
-                let n = o.rows.len();
+                let n = overlay_filtered_rows(o).len();
                 o.cursor = (o.cursor + n - 1) % n;
             }
         }
         KeyCode::Down | KeyCode::Char('j') => {
             if let Some(o) = app.all_upgradables.as_mut()
-                && !o.rows.is_empty()
+                && !overlay_filtered_rows(o).is_empty()
             {
-                let n = o.rows.len();
+                let n = overlay_filtered_rows(o).len();
                 o.cursor = (o.cursor + 1) % n;
             }
         }
@@ -1427,12 +1587,20 @@ fn handle_all_upgradables_key(
         }
         KeyCode::Char(' ') => {
             if let Some(o) = app.all_upgradables.as_mut()
-                && !o.rows.is_empty()
+                && !overlay_filtered_rows(o).is_empty()
             {
-                let idx = o.cursor;
-                if !o.selected.remove(&idx) {
-                    o.selected.insert(idx);
+                let filtered = overlay_filtered_rows(o);
+                if let Some((row_idx, _)) = filtered.get(o.cursor) {
+                    let idx = *row_idx;
+                    if !o.selected.remove(&idx) {
+                        o.selected.insert(idx);
+                    }
                 }
+            }
+        }
+        KeyCode::Char('/') => {
+            if let Some(o) = app.all_upgradables.as_mut() {
+                o.search_mode = true;
             }
         }
         KeyCode::Char(c) if modifiers.contains(KeyModifiers::SHIFT) && c.is_ascii_alphabetic() => {
@@ -1467,12 +1635,29 @@ fn clamp_pm_selection(app: &mut App) {
 }
 
 fn handle_pm_switch(app: &mut App) {
+    maybe_show_privilege_hint(app);
     if matches!(app.per_pm_packages.get(app.active_pm_index), Some(Some(_))) {
         clamp_pm_selection(app);
         return;
     }
     app.load_packages_sync();
     clamp_pm_selection(app);
+}
+
+fn maybe_show_privilege_hint(app: &mut App) {
+    let Some(pm) = app.package_managers.get(app.active_pm_index) else {
+        return;
+    };
+    let needs_sudo_hint = matches!(pm.name.as_str(), "apt" | "pacman" | "aur" | "rpm" | "snap");
+    if !needs_sudo_hint {
+        return;
+    }
+    if app.shown_privilege_hint_for.insert(pm.name.clone()) {
+        app.message = Some(format!(
+            "{} actions may require sudo. Run `sudo -v` in terminal first.",
+            pm.name
+        ));
+    }
 }
 
 fn cycle_active_pm(app: &mut App, forward: bool) {
@@ -1774,6 +1959,12 @@ pub fn run() {
         println!();
         println!("Supported Package Managers:");
         println!("  pip, npm, bun, cargo, apt, pacman, aur, rpm, flatpak, snap, brew");
+        println!();
+        println!("Privilege note:");
+        println!(
+            "  UniPack runs package commands non-interactively. For apt/pacman/aur/rpm/snap actions,"
+        );
+        println!("  authenticate sudo first in a normal terminal: sudo -v");
         return;
     }
 
@@ -1871,7 +2062,10 @@ pub fn run() {
                 MultiUpgradeProgressEvent::Finished => {
                     app.multi_upgrade = None;
                     app.message = if !multi_upgrade_errors.is_empty() && multi_upgrade_ok == 0 {
-                        Some(format!("Upgrade failed: {}", multi_upgrade_errors.join("; ")))
+                        Some(format!(
+                            "Upgrade failed: {}",
+                            multi_upgrade_errors.join("; ")
+                        ))
                     } else if multi_upgrade_errors.is_empty() {
                         Some(format!("Upgraded {multi_upgrade_ok} package(s)"))
                     } else {
@@ -1948,10 +2142,10 @@ pub fn run() {
 
             match code {
                 KeyCode::Esc => {
-                    if !app.search_query.is_empty() {
-                        app.search_query.clear();
-                    } else {
+                    if app.search_query.is_empty() {
                         should_quit = true;
+                    } else {
+                        app.search_query.clear();
                     }
                 }
                 KeyCode::Char('q') if !app.search_mode => {
@@ -1982,7 +2176,8 @@ pub fn run() {
                     if !app.search_mode && !modifiers.contains(KeyModifiers::CONTROL) =>
                 {
                     if app.single_upgrade.is_some() {
-                        app.message = Some("Another package upgrade is already running".to_string());
+                        app.message =
+                            Some("Another package upgrade is already running".to_string());
                         continue;
                     }
                     let pkg_name = app
@@ -2055,6 +2250,8 @@ pub fn run() {
                         rows,
                         cursor: 0,
                         selected: BTreeSet::new(),
+                        search_query: String::new(),
+                        search_mode: false,
                     });
                 }
                 KeyCode::Char('R') if modifiers.contains(KeyModifiers::CONTROL) => {
@@ -2113,5 +2310,20 @@ mod installed_list_cache_tests {
         let a = vec![pkg("x", "1", None)];
         let b = vec![pkg("x", "2", None)];
         assert!(!installed_lists_equivalent(&a, &b));
+    }
+
+    #[test]
+    fn single_upgrade_progress_is_monotonic_and_capped() {
+        let checkpoints = [0_u64, 1_000, 5_000, 10_000, 20_000, 45_000, 120_000];
+        let mut prev = 0_u16;
+        for ms in checkpoints {
+            let pct = single_upgrade_percent(ms);
+            assert!(pct >= prev, "progress regressed at {ms}ms");
+            prev = pct;
+        }
+        assert_eq!(single_upgrade_percent(0), 8);
+        assert_eq!(single_upgrade_percent(10_000), 80);
+        assert_eq!(single_upgrade_percent(45_000), 95);
+        assert_eq!(single_upgrade_percent(120_000), 95);
     }
 }

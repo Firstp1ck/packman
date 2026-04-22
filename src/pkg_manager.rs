@@ -106,6 +106,7 @@ impl PackageManager {
 
     /// Runs the backend-specific install command for `name`.
     pub fn install_package(&self, name: &str) -> AppResult<String> {
+        ensure_privileges_ready(self.name.as_str())?;
         let output = match self.name.as_str() {
             "pip" | "cargo" | "brew" => Command::new("sh")
                 .args(["-c", &format!("{} install {}", self.command, name)])
@@ -123,7 +124,10 @@ impl PackageManager {
                 .args(["-c", &format!("sudo {} -S {}", self.command, name)])
                 .output()?,
             "aur" => Command::new("sh")
-                .args(["-c", &format!("{} -S {}", self.command, name)])
+                .args([
+                    "-c",
+                    &format!("{} -S --needed --noconfirm {}", self.command, name),
+                ])
                 .output()?,
             "rpm" => Command::new("sh")
                 .args(["-c", &format!("sudo {} -ivh {}", self.command, name)])
@@ -145,6 +149,7 @@ impl PackageManager {
 
     /// Runs the backend-specific remove/uninstall command for `name`.
     pub fn remove_package(&self, name: &str) -> AppResult<String> {
+        ensure_privileges_ready(self.name.as_str())?;
         let output = match self.name.as_str() {
             "pip" => Command::new("sh")
                 .args(["-c", &format!("{} uninstall -y {}", self.command, name)])
@@ -184,6 +189,7 @@ impl PackageManager {
 
     /// Runs the backend-specific upgrade/update command for `name`.
     pub fn upgrade_package(&self, name: &str) -> AppResult<String> {
+        ensure_privileges_ready(self.name.as_str())?;
         let output = match self.name.as_str() {
             "pip" => Command::new("sh")
                 .args([
@@ -194,13 +200,10 @@ impl PackageManager {
             "npm" if name == "npm" => Command::new("sh")
                 .args(["-c", &format!("{} install -g npm@latest", self.command)])
                 .output()?,
-            "npm" => Command::new("sh")
-                .args(["-c", &format!("{} update -g {}", self.command, name)])
-                .output()?,
             "bun" if name == "bun" => Command::new("sh")
                 .args(["-c", &format!("{} upgrade", self.command)])
                 .output()?,
-            "bun" => Command::new("sh")
+            "npm" | "bun" => Command::new("sh")
                 .args(["-c", &format!("{} update -g {}", self.command, name)])
                 .output()?,
             "cargo" => Command::new("sh")
@@ -222,7 +225,10 @@ impl PackageManager {
                 .args(["-c", &format!("sudo {} -S {}", self.command, name)])
                 .output()?,
             "aur" => Command::new("sh")
-                .args(["-c", &format!("{} -S {}", self.command, name)])
+                .args([
+                    "-c",
+                    &format!("{} -S --needed --noconfirm {}", self.command, name),
+                ])
                 .output()?,
             "rpm" => Command::new("sh")
                 .args(["-c", &format!("sudo {} -Uvh {}", self.command, name)])
@@ -933,6 +939,25 @@ fn run_shell(cmd: &str) -> AppResult<std::process::Output> {
     Ok(Command::new("sh")
         .args(["-c", &format!("timeout 25 {cmd}")])
         .output()?)
+}
+
+fn ensure_privileges_ready(pm_name: &str) -> AppResult<()> {
+    let needs_sudo = matches!(pm_name, "apt" | "snap" | "pacman" | "rpm" | "aur");
+    if !needs_sudo {
+        return Ok(());
+    }
+
+    let sudo_ready = Command::new("sh")
+        .args(["-c", "sudo -n true"])
+        .output()
+        .is_ok_and(|o| o.status.success());
+
+    if sudo_ready {
+        Ok(())
+    } else {
+        let _ = pm_name;
+        Err(AppError::from("Run sudo -v in terminal, then retry."))
+    }
 }
 
 fn count_pip_updates() -> AppResult<usize> {

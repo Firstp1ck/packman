@@ -71,6 +71,13 @@ You need the **base-devel** group (for `makepkg`) and network access so the PKGB
 
 - **Rust** — current **stable** toolchain (install or update via [rustup](https://rustup.rs))
 - Any of the package managers above that you want UniPack to control
+- For managers that require root (notably `apt`, `pacman`, `aur`, `rpm`, `snap`), authenticate sudo first:
+
+```bash
+sudo -v
+```
+
+UniPack runs package actions non-interactively, so this avoids password-prompt stalls during install/remove/upgrade.
 
 ---
 
