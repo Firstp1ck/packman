@@ -22,6 +22,9 @@ pub(super) fn remove_package(pm: &PackageManager, name: &str) -> AppResult<Strin
 /// Runs the backend-specific upgrade/update command for `name`.
 pub(super) fn upgrade_package(pm: &PackageManager, name: &str) -> AppResult<String> {
     ensure_privileges_ready(pm.name.as_str())?;
+    if pm.name == "apt" {
+        return upgrade_apt(pm.command.as_str(), name);
+    }
     let output = dispatch_upgrade(pm, name)?;
     finalize_output(&output, "upgraded", name)
 }
@@ -45,9 +48,6 @@ pub(super) fn refresh_mirrors_and_upgrade_package(
         ));
     }
 
-    if pm.name == "apt" {
-        return upgrade_apt(pm.command.as_str(), name);
-    }
     let output = dispatch_upgrade(pm, name)?;
     finalize_output(&output, "upgraded", name)
 }
