@@ -634,6 +634,7 @@ fn detect_package_managers() -> Vec<PackageManager> {
     const PM_CONFIGS: &[(&str, &str, &str, bool)] = &[
         ("pip", "pip3", "pip", false),
         ("npm", "npm", "npm", false),
+        ("pnpm", "pnpm", "pnpm", false),
         ("bun", "bun", "bun", false),
         ("cargo", "cargo", "cargo", false),
         ("brew", "brew", "brew", false),
@@ -2139,7 +2140,7 @@ pub fn run() {
         println!("  q             Quit when not in search (in search, types into query)");
         println!();
         println!("Supported Package Managers:");
-        println!("  pip, npm, bun, cargo, apt, pacman, aur, rpm, flatpak, snap, brew");
+        println!("  pip, npm, pnpm, bun, cargo, apt, pacman, aur, rpm, flatpak, snap, brew");
         println!();
         println!("Privilege note:");
         println!(
