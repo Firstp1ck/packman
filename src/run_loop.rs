@@ -280,7 +280,8 @@ fn maybe_prepare_mirror_retry(app: &mut App, display_name: &str) {
         return;
     };
     let Some(pm) = app.active_pm() else {
-        app.message = Some("Update appears out-of-sync. Retry after selecting a package.".to_string());
+        app.message =
+            Some("Update appears out-of-sync. Retry after selecting a package.".to_string());
         return;
     };
     let op_arg = pip_pacman_op_arg(&pm, p);
@@ -439,7 +440,7 @@ fn handle_pending_mirror_retry_key(
     single_upgrade_tx: &SingleUpgradeSender,
 ) -> bool {
     match code {
-        KeyCode::Char('y') | KeyCode::Char('Y') => {
+        KeyCode::Char('y' | 'Y') => {
             let Some(pending) = app.pending_mirror_retry.take() else {
                 return false;
             };
@@ -460,7 +461,7 @@ fn handle_pending_mirror_retry_key(
             });
             false
         }
-        KeyCode::Esc | KeyCode::Char('n') | KeyCode::Char('N') => {
+        KeyCode::Esc | KeyCode::Char('n' | 'N') => {
             app.pending_mirror_retry = None;
             app.message = Some("Mirror refresh canceled.".to_string());
             false
