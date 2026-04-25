@@ -51,6 +51,12 @@ When **`pacman`** is available (Arch and other pacman-based distros), global Pyt
 
 ## 🚀 Installation
 
+### From crates.io (recommended)
+
+```bash
+cargo install unipack
+```
+
 ### From source
 
 ```bash
