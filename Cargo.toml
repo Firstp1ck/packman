@@ -2,6 +2,12 @@
 name = "unipack"
 version = "0.1.4"
 edition = "2024"
+description = "A unified TUI for browsing and managing packages across package managers."
+license = "MIT"
+repository = "https://github.com/firstp1ck/unipack"
+homepage = "https://github.com/firstp1ck/unipack"
+documentation = "https://docs.rs/unipack"
+readme = "README.md"
 
 [dependencies]
 ratatui = "0.30.0"
