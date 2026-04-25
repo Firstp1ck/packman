@@ -275,8 +275,9 @@ expand_tilde() {
 
 phase1_version_update() {
   local new_ver="${1}"
-  local current_ver
+  local current_ver repo_pkgbuild
   current_ver="$(get_current_version)"
+  repo_pkgbuild="${UNIPACK_DIR}/PKGBUILD"
 
   log_phase "1. Version Update"
   printf "%b[INFO] %bCurrent version: %b%s%b\n" "${BLUE}" "${RESET}" "${BOLD}" "${current_ver}" "${RESET}"
@@ -288,6 +289,16 @@ phase1_version_update() {
   else
     sed -i "s/^version = \"${current_ver}\"/version = \"${new_ver}\"/" "${UNIPACK_DIR}/Cargo.toml"
     log_success "Updated Cargo.toml"
+  fi
+
+  log_step "Updating repository PKGBUILD"
+  if [[ ! -f "${repo_pkgbuild}" ]]; then
+    log_warn "Repository PKGBUILD not found at ${repo_pkgbuild}; skipping"
+  elif [[ "${DRY_RUN}" == true ]]; then
+    log_info "[DRY-RUN] Would update pkgver in ${repo_pkgbuild} to ${new_ver}"
+  else
+    sed -i "s/^pkgver=.*/pkgver=${new_ver}/" "${repo_pkgbuild}"
+    log_success "Updated ${repo_pkgbuild}"
   fi
 
   log_step "Updating Cargo.lock"
