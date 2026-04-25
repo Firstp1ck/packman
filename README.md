@@ -18,10 +18,11 @@ When **`pacman`** is available (Arch and other pacman-based distros), global Pyt
 
 - **Finds** which supported package managers are installed
 - **One list per tool** — switch with Tab / Shift+Tab
-- **Live search** — filter as you type (`/`)
+- **Live search** — filter as you type (`/`), and press `Ctrl+f` while searching to toggle normal/fuzzy matching
 - **Upgrade and remove** without leaving the app (installing new packages is intentionally out of scope)
+- **`Ctrl+u`** — run a backend-native full-system update on the active tab (with `y/n` confirmation, where supported)
 - **`o`** — show only packages with updates, or everything, for the current manager
-- **`a`** — see updates from **all** managers at once (Space toggles a row, **`u`** upgrades what you selected, **`a`** / **`d`** select all or none, **Shift+letter** quickly toggles rows for managers whose name starts with that letter)
+- **`a`** — see updates from **all** managers at once (Space toggles a row, **`u`** upgrades what you selected with full-system fallback where eligible, **`a`** / **`d`** select all or none, **Shift+letter** quickly toggles rows for managers whose name starts with that letter)
 - **Distro name** in the header on Linux
 - **TokyoNight**-style colors
 - **Twelve sources**: pip, npm, pnpm, bun, cargo, brew, apt, pacman, AUR (**yay** and/or **paru** — either is enough), rpm, flatpak, snap
@@ -91,14 +92,16 @@ If you accept the startup prompt and `sudo -v` fails, UniPack exits with a non-z
 |------------------|--------|
 | `↑` / `k`        | Move up (wraps) |
 | `↓` / `j`        | Move down (wraps) |
-| `Ctrl+d` / `Ctrl+u` | Page down / up the list |
+| `Ctrl+d`         | Page down the list |
 | `/`              | Toggle search mode |
+| `Ctrl+f`         | Toggle normal/fuzzy search mode (while search is active) |
 | `o`              | Toggle upgradable-only vs all packages |
 | `a`              | Open **all upgradables** overlay (`Esc` / `q` to close) |
-| `u`              | Upgrade selected row (main list) or **selected rows** (overlay) |
-| `r`              | Remove selected package |
+| `u`              | Upgrade selected row (main list) or **selected rows** (overlay, with full-system fallback where eligible) |
+| `Ctrl+u`         | Confirm and run full-system update for the active backend (supported: `apt`, `pacman`, `aur`, `flatpak`, `snap`) |
+| `Del`            | Remove selected package |
 | `Tab` / `Shift+Tab` | Next / previous package manager |
-| `Ctrl+R`         | Refresh lists and pending-update counts |
+| `r`              | Refresh lists and pending-update counts |
 | `Esc`            | Leave search, or quit when not searching |
 | `q`              | Quit (only when not in search; in search, `q` is part of the query) |
 
@@ -117,7 +120,9 @@ unipack -h
 
 **To upgrade:** select a row and press `u`, or press `a` for the all-managers overlay, tick rows with `Space`, and press `u`.
 
-**To remove:** select a row and press `r`.
+**To run a full-system update (supported backends):** press `Ctrl+u` on the active tab, then confirm with `y`.
+
+**To remove:** select a row and press `Del`.
 
 **To install a new package:** use your package manager directly (for example `sudo pacman -S python-<name>`, `yay -S python-<name>` / `paru -S python-<name>` when using pacman-based repos/AUR, `sudo apt install <pkg>`, or `pip install --user <pkg>` when not using that layout). UniPack intentionally does not install new packages — it is focused on updates.
 
