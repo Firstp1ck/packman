@@ -1030,16 +1030,31 @@ EOF
 
   release_date="$(date +%Y-%m-%d)"
   tmp_file="$(mktemp)"
-  existing_version_line="$(awk -v v="${new_ver}" '/^##[[:space:]]*\[/{if ($0 ~ "\\[" v "\\]"){print NR; exit}}' "${changelog_file}")"
+  existing_version_line="$(awk -v v="${new_ver}" '
+    /^##[[:space:]]*\[/ {
+      line = $0
+      sub(/^##[[:space:]]*\[/, "", line)
+      sub(/\].*$/, "", line)
+      if (line == v) {
+        print NR
+        exit
+      }
+    }
+  ' "${changelog_file}")"
 
   if [[ -n "${existing_version_line}" ]]; then
     log_info "Version ${new_ver} already exists, replacing in place..."
     version_start="${existing_version_line}"
     version_end="$(awk -v s="${version_start}" '
-      NR<=s {next}
-      /^---[[:space:]]*$/ && NR>(s+2) {print NR; exit}
-      /^##[[:space:]]*\[/ {print NR; exit}
-      END {if (NR>0) print NR+1}
+      BEGIN { found=0 }
+      NR <= s { next }
+      /^---[[:space:]]*$/ && NR > (s + 2) { print NR; found=1; exit }
+      /^##[[:space:]]*\[/ { print NR; found=1; exit }
+      END {
+        if (!found) {
+          print NR + 1
+        }
+      }
     ' "${changelog_file}")"
 
     if [[ "${version_start}" -gt 1 ]]; then

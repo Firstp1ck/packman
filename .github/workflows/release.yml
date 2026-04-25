@@ -208,6 +208,7 @@ jobs:
           RELEASE_BODY: ${{ steps.release-body.outputs.body }}
           IS_PRERELEASE: ${{ needs.get-version.outputs.prerelease }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
 
