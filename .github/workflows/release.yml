@@ -202,19 +202,45 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Create or update release and upload assets
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ needs.get-version.outputs.version }}
-          name: Release ${{ needs.get-version.outputs.version }}
-          body: ${{ steps.release-body.outputs.body }}
-          files: |
+        env:
+          TAG: ${{ needs.get-version.outputs.version }}
+          RELEASE_NAME: Release ${{ needs.get-version.outputs.version }}
+          RELEASE_BODY: ${{ steps.release-body.outputs.body }}
+          IS_PRERELEASE: ${{ needs.get-version.outputs.prerelease }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          RELEASE_FILES=(
             release-files/unipack-linux-x86_64
             release-files/unipack-linux-arm64
             release-files/unipack-darwin-arm64
             release-files/SHA256SUMS
-          draft: false
-          prerelease: ${{ needs.get-version.outputs.prerelease == 'true' }}
-          generate_release_notes: false
-          fail_on_unmatched_files: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          )
+
+          for file in "${RELEASE_FILES[@]}"; do
+            test -f "$file"
+          done
+
+          # Remove duplicate draft releases for this tag before create/update.
+          mapfile -t DUPLICATE_DRAFT_IDS < <(
+            gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate \
+              --jq ".[] | select(.tag_name == \"${TAG}\" and .draft == true) | .id"
+          )
+          for release_id in "${DUPLICATE_DRAFT_IDS[@]}"; do
+            gh api -X DELETE "repos/${GITHUB_REPOSITORY}/releases/${release_id}"
+          done
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" \
+              --title "$RELEASE_NAME" \
+              --notes "$RELEASE_BODY" \
+              $([ "$IS_PRERELEASE" = "true" ] && echo "--prerelease" || echo "--latest")
+          else
+            gh release create "$TAG" \
+              --title "$RELEASE_NAME" \
+              --notes "$RELEASE_BODY" \
+              $([ "$IS_PRERELEASE" = "true" ] && echo "--prerelease")
+          fi
+
+          gh release upload "$TAG" "${RELEASE_FILES[@]}" --clobber
