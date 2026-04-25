@@ -573,6 +573,23 @@ phase4_build_release() {
   if [[ "${DRY_RUN}" == true ]]; then
     log_info "[DRY-RUN] Would run 'cargo publish' to publish to crates.io"
   else
+    local crate_name crate_versions_json version_regex
+    crate_name="$(awk -F'"' '/^[[:space:]]*name[[:space:]]*=[[:space:]]*"/ { print $2; exit }' "${UNIPACK_DIR}/Cargo.toml")"
+    if [[ -z "${crate_name}" ]]; then
+      log_warn "Could not detect crate name from Cargo.toml; continuing with cargo publish"
+    else
+      log_step "Checking crates.io for existing ${crate_name}@${new_ver}"
+      if crate_versions_json="$(curl -fsSL "https://crates.io/api/v1/crates/${crate_name}/versions" 2>/dev/null)"; then
+        version_regex="${new_ver//./\\.}"
+        if printf '%s' "${crate_versions_json}" | rg -q "\"num\"[[:space:]]*:[[:space:]]*\"${version_regex}\""; then
+          log_warn "${crate_name}@${new_ver} is already published on crates.io - skipping cargo publish"
+          return 0
+        fi
+      else
+        log_warn "Could not query crates.io for existing versions; continuing with cargo publish"
+      fi
+    fi
+
     cargo publish || {
       log_error "Failed to publish to crates.io"
       confirm_continue "Continue anyway?" || return 1
